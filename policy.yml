@@ -4,6 +4,7 @@ allowed_dirs:
   - 'src/**'
   - 'test/**'
   - 'docs/**'
+  - 'tools/**'
 
 hard_gate:
   - '.github/workflows/**'
