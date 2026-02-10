@@ -30,3 +30,6 @@ limits:
   max_diff_lines: 300
   max_new_files: 3
   max_deleted_files: 1
+
+bootstrap:
+  allow_workflows: true
