@@ -1,0 +1,32 @@
+name: policy-gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run policy gate
+        env:
+          POLICY_BASE: "origin/${{ github.base_ref }}"
+          POLICY_HEAD: "${{ github.sha }}"
+          # Soft gate is controlled by labels in a later step (we’ll add it when PR labeling exists)
+          ALLOW_DEPS: "false"
+          ALLOW_CONFIG: "false"
+        run: |
+          node tools/policy-gate.js --base "$POLICY_BASE" --head "$POLICY_HEAD"
