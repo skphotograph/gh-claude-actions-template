@@ -125,15 +125,23 @@ function parseSimpleYaml(text) {
 }
 
 function globToRegExp(glob) {
-  // supports ** and *
-  // - ** matches any path segments
-  // - * matches any chars except '/'
-  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-  const re = escaped
-    .replace(/\\\*\\\*/g, '§§DOUBLESTAR§§')
-    .replace(/\\\*/g, '[^/]*')
-    .replace(/§§DOUBLESTAR§§/g, '.*');
-  return new RegExp('^' + re + '$');
+  // Convert simple glob patterns (*, **) into a safe RegExp.
+  // - ** => .*
+  // - *  => [^/]*
+
+  // 1) Replace glob tokens with placeholders first
+  let g = String(glob);
+  g = g.replace(/\*\*/g, '§§DOUBLESTAR§§');
+  g = g.replace(/\*/g, '§§STAR§§');
+
+  // 2) Escape regex metacharacters
+  g = g.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+
+  // 3) Restore placeholders as regex fragments
+  g = g.replace(/§§DOUBLESTAR§§/g, '.*');
+  g = g.replace(/§§STAR§§/g, '[^/]*');
+
+  return new RegExp('^' + g + '$');
 }
 
 function anyMatch(globs, path) {
