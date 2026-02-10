@@ -1,0 +1,32 @@
+policy_version: 1
+
+allowed_dirs:
+  - 'src/**'
+  - 'test/**'
+  - 'docs/**'
+
+hard_gate:
+  - '.github/workflows/**'
+  - 'migrations/**'
+  - 'ddl/**'
+
+soft_gate:
+  deps:
+    - 'package.json'
+    - 'package-lock.json'
+    - 'pnpm-lock.yaml'
+    - 'yarn.lock'
+    - 'pom.xml'
+    - 'build.gradle'
+    - 'build.gradle.kts'
+    - 'gradle.properties'
+  config:
+    - '**/*.yml'
+    - '**/*.yaml'
+    - '**/*.properties'
+
+limits:
+  max_files_changed: 10
+  max_diff_lines: 300
+  max_new_files: 3
+  max_deleted_files: 1
