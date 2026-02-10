@@ -6,6 +6,9 @@ allowed_dirs:
   - 'docs/**'
   - 'tools/**'
 
+allowed_files:
+  - 'policy.yml'
+
 hard_gate:
   - '.github/workflows/**'
   - 'migrations/**'

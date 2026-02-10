@@ -172,6 +172,7 @@ function main() {
   const policy = parseSimpleYaml(fs.readFileSync(policyPath, 'utf8'));
 
   const allowedDirs = policy.allowed_dirs || [];
+  const allowedFiles = policy.allowed_files || [];
   const hardGate = policy.hard_gate || [];
   const softGate = policy.soft_gate || {};
   const limits = policy.limits || {};
@@ -248,7 +249,9 @@ function main() {
 
   // Allowed dirs gate
   const outside = changes
-    .filter((c) => !anyMatch(allowedDirs, c.path))
+    .filter(
+      (c) => !anyMatch(allowedDirs, c.path) && !allowedFiles.includes(c.path),
+    )
     .map((c) => c.path);
 
   if (outside.length) {
