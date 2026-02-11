@@ -16,6 +16,7 @@ jobs:
       - name: Enable auto-merge (squash)
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GH_AUTOMERGE_TOKEN }}
           script: |
             // Enable auto-merge for this PR (requires repo setting "Allow auto-merge" ON)
             await github.graphql(`
