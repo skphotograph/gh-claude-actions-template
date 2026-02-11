@@ -40,20 +40,34 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const issue_number = issue.number;
+            const labels = (issue.labels || []).map((l) => l.name);
+            const hasAiQuestion = labels.includes("ai-question");
 
-            // Add ai-question label when template is incomplete
-            await github.rest.issues.addLabels({
-              owner,
-              repo,
-              issue_number,
-              labels: ["ai-question"],
-            });
+            // Add ai-question label when template is incomplete (avoid duplicate add)
+            if (!hasAiQuestion) {
+              await github.rest.issues.addLabels({
+                owner,
+                repo,
+                issue_number,
+                labels: ["ai-question"],
+              });
+            }
 
             const list = missing.map((h) => `- ${h}`).join("\n");
+            const foundCount = requiredHeadings.length - missing.length;
             const message = [
-              "issue-guard: テンプレ必須見出しが不足しています。以下を追記してください。",
+              "issue-guard: Issueテンプレの必須見出しが不足しています。",
               "",
+              `- 検出できた見出し: ${foundCount}/${requiredHeadings.length}`,
+              `- 不足見出し数: ${missing.length}`,
+              "",
+              "不足している見出し:",
               list,
+              "",
+              "次の対応:",
+              "1. 上記見出しをIssue本文に追記",
+              "2. 必要事項を記入して保存",
+              "3. `ai-ready` を付与してAI着手可能状態にする",
               "",
               "補完後に `ai-ready` を付与してAI着手可能状態にしてください。",
             ].join("\n");
