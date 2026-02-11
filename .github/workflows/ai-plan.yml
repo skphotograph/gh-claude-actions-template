@@ -1,0 +1,71 @@
+name: ai-plan
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  ai-plan:
+    if: >-
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, '/run-claude plan')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate labels and reply with plan stub
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.payload.issue.number;
+
+            const labels = (context.payload.issue.labels || []).map(l => l.name);
+            const hasAiReady = labels.includes("ai-ready");
+            const blocked = labels.includes("ai-question") || labels.includes("ai-blocked");
+
+            if (!hasAiReady || blocked) {
+              const reasons = [];
+              if (!hasAiReady) reasons.push("- `ai-ready` ラベルが未付与です");
+              if (blocked) reasons.push("- `ai-question` または `ai-blocked` ラベルが付与されています");
+
+              const body = [
+                "`/run-claude plan` は現在実行できません。",
+                "",
+                "理由:",
+                ...reasons,
+                "",
+                "対応後にもう一度 `/run-claude plan` をコメントしてください。",
+              ].join("\n");
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+              core.setFailed("ai-plan preconditions are not satisfied");
+              return;
+            }
+
+            const body = [
+              "`/run-claude plan` を受け付けました（最小版）。",
+              "",
+              "次フェーズで、以下を自動化していきます：",
+              "- Issue本文の要件抽出",
+              "- 変更対象ファイル案（read-only）",
+              "- テスト戦略（AC→Test）",
+              "- リスク/ロールバック案",
+              "",
+              "現時点では plan 実行の器（起動・ガード・応答）まで実装済みです。",
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body,
+            });
