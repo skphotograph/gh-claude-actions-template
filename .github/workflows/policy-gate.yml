@@ -27,6 +27,6 @@ jobs:
           POLICY_HEAD: '${{ github.sha }}'
           # Soft gate is controlled by labels in a later step (we’ll add it when PR labeling exists)
           ALLOW_DEPS: 'false'
-          ALLOW_CONFIG: 'false'
+          ALLOW_CONFIG: 'true'
         run: |
           node tools/policy-gate.js --base "$POLICY_BASE" --head "$POLICY_HEAD"
