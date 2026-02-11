@@ -67,34 +67,26 @@
 
 ---
 
-## Phase 8：safe-to-merge → Auto-merge ON
+## Phase 8：テンプレ完成判定
 
-1. リポジトリで Auto-merge 許可
-2. Branch protection 設定（required checks）
-3. `enable-automerge.yml` 追加（`safe-to-merge` で Auto-merge 有効化）
-
----
-
-## Phase 9：テンプレ完成判定
-
-- policy gate / CI / issue-guard / plan / implement / review / enable-automerge が揃い
+- policy gate / CI / issue-guard / plan / implement / review が揃い
 - README に「各アプリRepoでやること（Secrets、Branch protection等）」が明記されている
 
 ---
 
-## Phase 10：第1アプリ作成（テンプレから派生）
+## Phase 9：第1アプリ作成（テンプレから派生）
 
 1. テンプレから新規アプリRepo作成
 2. Secrets設定（`ANTHROPIC_API_KEY`）
-3. Branch protection / Auto-merge 設定
+3. Branch protection 設定
 4. アプリ側で CI入口コマンド（例：`make ci`）を整備し、CIを緑にする
 5. `policy.yml` をリポ構造に合わせて調整
 6. 最短動作確認
-   - Issue → `ai-ready` → `/run-claude plan` → `/run-claude implement` → draft PR → `/run-claude review` → `safe-to-merge` → Auto-merge
+   - Issue → `ai-ready` → `/run-claude plan` → `/run-claude implement` → draft PR → `/run-claude review` → merge
 
 ---
 
-## Phase 11：第2アプリ以降（横展開）
+## Phase 10：第2アプリ以降（横展開）
 
 - Template repository から作成
 - アプリ側の差分は基本 `policy.yml` と CI入口コマンドのみ

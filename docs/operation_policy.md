@@ -4,8 +4,8 @@
 
 ### 1.1 到達ライン（現時点）
 
-- **自動化完了の定義：自動マージまで**
-  - Issue起票 → AI実装 → PR作成 → CI → 人間レビュー承認 → GitHub Auto-merge によるマージ
+- **自動化完了の定義：マージまで**
+  - Issue起票 → AI実装 → PR作成 → CI → 人間レビュー承認 → 人間による手動マージ
 
 ### 1.2 失敗時の停止条件（即停止）
 
@@ -94,7 +94,6 @@
 | `ai-question`     | 仕様不足・質問待ち（AIは停止）                     |
 | `ai-blocked`      | 人間判断が必要（AIは停止）                         |
 | `draft-pr`        | ドラフトPR作成済                                   |
-| `safe-to-merge`   | 人間が最終OK（Auto-merge有効化の合図）             |
 | `phase-bootstrap` | 初期構築・探索フェーズ（仕様変更を儀式化して許容） |
 | `phase-stable`    | 安定運用フェーズ（デフォルト扱い）                 |
 | `allow-deps`      | 依存ファイル変更を例外許可（Soft Gate解除）        |
@@ -250,7 +249,7 @@
 ### 6.1 PR本文に AC→Test 対応表を必須化
 
 - PR本文に「各ACをどのテストで担保したか」を必ず記載
-- 未カバーACがある場合は理由と次アクションを記載（原則 safe-to-merge 付与不可）
+- 未カバーACがある場合は理由と次アクションを記載
 
 ### 6.2 “テストが書けない” の定義と扱い（A/B/C）
 
@@ -297,7 +296,7 @@
 - 実行環境：**GitHub-hosted runner**
 - 起動方式：**Claude Code Action（公式）**
 - コメントコマンド：**slash-command-dispatch**
-- マージ：**GitHub Auto-merge + Branch protection**
+- マージ：**手動マージ + Branch protection**
 
 ### 8.2 ワークフロー分離（最小5本）
 
@@ -320,9 +319,6 @@
 6. `ai-review.yml`
    - コメント起動：`/run-claude review`
    - PR差分/PR本文の点検（指摘・質問のみ）
-7. `enable-automerge.yml`
-   - `pull_request.labeled`
-   - `safe-to-merge` を検知して Auto-merge を有効化
 
 ### 8.3 最小権限（permissions）方針
 
@@ -331,7 +327,6 @@
   - plan：`contents: read`, `issues: write`
   - implement：`contents: write`, `pull-requests: write`, `issues: write`
   - review：`pull-requests: write`（コメント投稿が必要な場合）
-  - enable-automerge：`pull-requests: write`
 
 ### 8.4 ログと証跡（Artifacts + コメント）
 
@@ -346,7 +341,7 @@
 
 ---
 
-## 9. PR運用と自動マージ
+## 9. PR運用とマージ
 
 ### 9.1 ブランチ命名規則
 
@@ -360,12 +355,6 @@
 - AIがPRを作成（原則 draft）
 - PR本文は固定テンプレで生成（目的/変更点/AC→Test/影響/リスク/rollback）
 - `draft-pr` ラベルを付与して状態を明示
-
-### 9.3 Auto-mergeの扱い（safe-to-merge連動）
-
-- `safe-to-merge` は **人間（あなた）のみが付与**
-- `safe-to-merge` が付与されたら `enable-automerge.yml` が Auto-merge を有効化
-- required checks が揃った時点で GitHub が自動でマージ
 
 ---
 
@@ -417,7 +406,7 @@
 
 ### 12.2 テンプレに含めるもの（共通化）
 
-- `.github/workflows/`（CI / policy / guard / plan / implement / review / enable-automerge）
+- `.github/workflows/`（CI / policy / guard / plan / implement / review）
 - Issue/PRテンプレ
 - policy gate スクリプト本体
 - 実行ログ出力フォーマット（コメント＋Artifacts）
@@ -470,5 +459,5 @@
 
 - plan系Subagentは **read-only**
 - `reviewer` は **最終判定しない**
-- `safe-to-merge` は **あなたのみが操作**
+- `マージ` は **人間が操作**
 - Soft Gate領域は **例外ラベル＋plan合意必須**
