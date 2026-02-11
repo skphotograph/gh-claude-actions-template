@@ -1,0 +1,68 @@
+name: issue-guard
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  issue-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate issue template sections
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || "";
+
+            const requiredHeadings = [
+              "## 🎯 目的（Why）",
+              "## 📌 仕様（What）",
+              "## ✅ 受け入れ条件（Acceptance Criteria）",
+              "## 🧪 テスト観点",
+              "## ⚙ 非機能要件",
+              "## 🔄 影響範囲",
+              "## ⛓ 制約・前提",
+              "## ❓ 未確定・要確認事項",
+            ];
+
+            const missing = requiredHeadings.filter((h) => !body.includes(h));
+
+            if (missing.length === 0) {
+              core.info("issue-guard: required headings are complete");
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = issue.number;
+
+            // Add ai-question label when template is incomplete
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number,
+              labels: ["ai-question"],
+            });
+
+            const list = missing.map((h) => `- ${h}`).join("\n");
+            const message = [
+              "issue-guard: テンプレ必須見出しが不足しています。以下を追記してください。",
+              "",
+              list,
+              "",
+              "補完後に `ai-ready` を付与してAI着手可能状態にしてください。",
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: message,
+            });
+
+            core.setFailed(`Missing required headings: ${missing.join(", ")}`);
