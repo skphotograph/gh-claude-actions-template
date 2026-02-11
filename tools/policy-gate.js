@@ -171,7 +171,6 @@ function main() {
 
   const policy = parseSimpleYaml(fs.readFileSync(policyPath, 'utf8'));
 
-  const allowedDirs = policy.allowed_dirs || [];
   const allowedFiles = policy.allowed_files || [];
   const hardGate = policy.hard_gate || [];
   const softGate = policy.soft_gate || {};
@@ -180,6 +179,12 @@ function main() {
   // bootstrap: allow modifying workflows during initial setup
   const bootstrap = policy.bootstrap || {};
   const allowWorkflows = bootstrap.allow_workflows === true;
+
+  const allowedDirsBase = policy.allowed_dirs || [];
+  const allowedDirsExtra = allowWorkflows
+    ? bootstrap.allowed_dirs_extra || []
+    : [];
+  const allowedDirs = [...allowedDirsBase, ...allowedDirsExtra];
 
   const effectiveHardGate = allowWorkflows
     ? hardGate.filter((g) => g !== '.github/workflows/**')

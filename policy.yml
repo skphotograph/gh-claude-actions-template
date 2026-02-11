@@ -8,6 +8,8 @@ allowed_dirs:
 
 allowed_files:
   - 'policy.yml'
+  - '.github/workflows/ci.yml'
+  - '.github/workflows/policy-gate.yml'
 
 hard_gate:
   - '.github/workflows/**'
@@ -37,3 +39,5 @@ limits:
 
 bootstrap:
   allow_workflows: true
+  allowed_dirs_extra:
+    - '.github/workflows/**'
