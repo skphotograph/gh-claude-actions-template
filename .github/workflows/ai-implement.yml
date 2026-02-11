@@ -1,0 +1,72 @@
+name: ai-implement
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  ai-implement:
+    if: >-
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, '/run-claude implement')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate labels and reply with implement stub
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.payload.issue.number;
+
+            const labels = (context.payload.issue.labels || []).map(l => l.name);
+            const hasAiReady = labels.includes("ai-ready");
+            const blocked = labels.includes("ai-question") || labels.includes("ai-blocked");
+
+            if (!hasAiReady || blocked) {
+              const reasons = [];
+              if (!hasAiReady) reasons.push("- `ai-ready` ラベルが未付与です");
+              if (blocked) reasons.push("- `ai-question` または `ai-blocked` ラベルが付与されています");
+
+              const body = [
+                "`/run-claude implement` は現在実行できません。",
+                "",
+                "理由:",
+                ...reasons,
+                "",
+                "対応後にもう一度 `/run-claude implement` をコメントしてください。",
+              ].join("\n");
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+              core.setFailed("ai-implement preconditions are not satisfied");
+              return;
+            }
+
+            const body = [
+              "`/run-claude implement` を受け付けました（最小版）。",
+              "",
+              "次フェーズで、以下を実装していきます：",
+              "- ブランチ作成と実装適用",
+              "- テスト実行（CI入口コマンド）",
+              "- draft PR作成",
+              "- AC→Test の記録",
+              "",
+              "現時点では implement 実行の器（起動・ガード・応答）まで実装済みです。",
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body,
+            });
