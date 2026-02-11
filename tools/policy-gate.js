@@ -125,15 +125,23 @@ function parseSimpleYaml(text) {
 }
 
 function globToRegExp(glob) {
-  // supports ** and *
-  // - ** matches any path segments
-  // - * matches any chars except '/'
-  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-  const re = escaped
-    .replace(/\\\*\\\*/g, '§§DOUBLESTAR§§')
-    .replace(/\\\*/g, '[^/]*')
-    .replace(/§§DOUBLESTAR§§/g, '.*');
-  return new RegExp('^' + re + '$');
+  // Convert simple glob patterns (*, **) into a safe RegExp.
+  // - ** => .*
+  // - *  => [^/]*
+
+  // 1) Replace glob tokens with placeholders first
+  let g = String(glob);
+  g = g.replace(/\*\*/g, '§§DOUBLESTAR§§');
+  g = g.replace(/\*/g, '§§STAR§§');
+
+  // 2) Escape regex metacharacters
+  g = g.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+
+  // 3) Restore placeholders as regex fragments
+  g = g.replace(/§§DOUBLESTAR§§/g, '.*');
+  g = g.replace(/§§STAR§§/g, '[^/]*');
+
+  return new RegExp('^' + g + '$');
 }
 
 function anyMatch(globs, path) {
@@ -163,7 +171,7 @@ function main() {
 
   const policy = parseSimpleYaml(fs.readFileSync(policyPath, 'utf8'));
 
-  const allowedDirs = policy.allowed_dirs || [];
+  const allowedFiles = policy.allowed_files || [];
   const hardGate = policy.hard_gate || [];
   const softGate = policy.soft_gate || {};
   const limits = policy.limits || {};
@@ -171,6 +179,12 @@ function main() {
   // bootstrap: allow modifying workflows during initial setup
   const bootstrap = policy.bootstrap || {};
   const allowWorkflows = bootstrap.allow_workflows === true;
+
+  const allowedDirsBase = policy.allowed_dirs || [];
+  const allowedDirsExtra = allowWorkflows
+    ? bootstrap.allowed_dirs_extra || []
+    : [];
+  const allowedDirs = [...allowedDirsBase, ...allowedDirsExtra];
 
   const effectiveHardGate = allowWorkflows
     ? hardGate.filter((g) => g !== '.github/workflows/**')
@@ -240,7 +254,9 @@ function main() {
 
   // Allowed dirs gate
   const outside = changes
-    .filter((c) => !anyMatch(allowedDirs, c.path))
+    .filter(
+      (c) => !anyMatch(allowedDirs, c.path) && !allowedFiles.includes(c.path),
+    )
     .map((c) => c.path);
 
   if (outside.length) {
