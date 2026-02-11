@@ -10,6 +10,7 @@ allowed_files:
   - 'policy.yml'
   - '.github/workflows/ci.yml'
   - '.github/workflows/policy-gate.yml'
+  - 'README.md'
 
 hard_gate:
   - '.github/workflows/**'
