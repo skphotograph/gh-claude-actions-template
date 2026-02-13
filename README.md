@@ -37,6 +37,12 @@
    - PRコメントで `/run-claude review`
    - `ai-review.yml` が起動し、最小版コメントを返します
 
+### コメント入力の注意
+
+- slash command は **バッククォートなし** で入力してください
+  - 例: `/run-claude implement`（OK）
+  - 例: `` `/run-claude implement` ``（NG: 条件不一致で skipped になり得る）
+
 ### マージ方針
 
 - 本テンプレートは **手動マージ運用** です
@@ -72,3 +78,14 @@
 
 - GitHubの **Actions** タブで該当Workflow Runを確認
 - PRの **Checks** タブで `ci` / `policy-gate` の状態を確認
+
+## 現在のテンプレ実装状況（2026-02時点）
+
+- 実装済み
+  - `issue-guard.yml`
+  - `ai-plan.yml`（最小版）
+  - `ai-implement.yml`（最小版）
+  - `ai-review.yml`（最小版）
+- 運用方針
+  - **手動マージ固定**（safe-to-merge / enable-automerge は不使用）
+  - required checks（`ci` / `policy-gate`）成功後に人間がマージ
