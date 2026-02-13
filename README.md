@@ -41,3 +41,34 @@
 
 - 本テンプレートは **手動マージ運用** です
 - required checks（`ci` / `policy-gate`）が成功したPRを、人間が確認してマージします
+
+## ワークフロー動作確認手順（スモーク）
+
+### 1) issue-guard（Issue作成時）
+
+1. 見出しをいくつか省略したIssueを作成
+2. `issue-guard` が起動し、`ai-question` ラベルと不足見出しコメントが付くことを確認
+3. Issue本文を修正し、必要に応じて `ai-ready` を付与
+
+### 2) ai-plan（Issueコメント）
+
+1. 対象Issueに `ai-ready` を付与（`ai-question` / `ai-blocked` は外す）
+2. Issueに `/run-claude plan` とコメント
+3. `ai-plan.yml` が起動し、最小版応答コメントを返すことを確認
+
+### 3) ai-implement（Issueコメント）
+
+1. 対象Issueに `ai-ready` を付与（`ai-question` / `ai-blocked` は外す）
+2. Issueに `/run-claude implement` とコメント
+3. `ai-implement.yml` が起動し、最小版応答コメントを返すことを確認
+
+### 4) ai-review（PRコメント）
+
+1. 何らかのPRを1つ開く
+2. PRコメントに `/run-claude review` と投稿
+3. `ai-review.yml` が起動し、最小版応答コメントを返すことを確認
+
+### 5) 失敗時の見る場所
+
+- GitHubの **Actions** タブで該当Workflow Runを確認
+- PRの **Checks** タブで `ci` / `policy-gate` の状態を確認
