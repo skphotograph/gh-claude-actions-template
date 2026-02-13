@@ -72,6 +72,16 @@
 - policy gate / CI / issue-guard / plan / implement / review が揃い
 - README に「各アプリRepoでやること（Secrets、Branch protection等）」が明記されている
 
+### 進捗メモ（2026-02）
+
+- 完了済み（最小版）
+  - `issue-guard.yml`
+  - `ai-plan.yml`
+  - `ai-implement.yml`
+  - `ai-review.yml`
+- スモーク結果は `docs/workflow_smoke_results.md` を参照
+- マージ方針は手動マージ固定（safe-to-merge / enable-automerge 不使用）
+
 ---
 
 ## Phase 9：第1アプリ作成（テンプレから派生）
