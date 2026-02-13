@@ -1,0 +1,35 @@
+# 必須ラベル一覧
+# 使い方: tools/setup-labels.sh を実行してください
+# または: gh label import .github/labels.yml
+
+- name: ai-ready
+  color: "0075ca"
+  description: "AI着手許可（誤爆防止のスイッチ）"
+
+- name: ai-question
+  color: "e4e669"
+  description: "仕様不足・質問待ち（AIは停止）"
+
+- name: ai-blocked
+  color: "d93f0b"
+  description: "人間判断待ち（AIは停止）"
+
+- name: draft-pr
+  color: "bfd4f2"
+  description: "AI作成のドラフトPR"
+
+- name: phase-bootstrap
+  color: "f9d0c4"
+  description: "初期構築フェーズ（仕様変更を儀式化して許容）"
+
+- name: phase-stable
+  color: "c2e0c6"
+  description: "安定運用フェーズ（デフォルト）"
+
+- name: allow-deps
+  color: "fef2c0"
+  description: "依存ファイル変更の例外許可（Soft Gate解除）"
+
+- name: allow-config
+  color: "fef2c0"
+  description: "設定ファイル変更の例外許可（Soft Gate解除）"

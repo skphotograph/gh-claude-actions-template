@@ -5,6 +5,18 @@
 
 ## 必須ラベル一覧
 
+### ラベルの一括登録（新規 Repo セットアップ時）
+
+```bash
+# gh CLI が必要: https://cli.github.com/
+bash tools/setup-labels.sh          # カレントの git remote から自動検出
+bash tools/setup-labels.sh OWNER/REPO  # 明示指定する場合
+```
+
+定義ファイル: [`.github/labels.yml`](.github/labels.yml)
+
+### ラベル一覧
+
 | ラベル            | 用途                                         |
 | ----------------- | -------------------------------------------- |
 | `ai-ready`        | AI着手許可（誤爆防止のスイッチ）             |
@@ -66,19 +78,22 @@
 
 1. 対象Issueに `ai-ready` を付与（`ai-question` / `ai-blocked` は外す）
 2. Issueに `/run-claude plan` とコメント
-3. `ai-plan.yml` が起動し、最小版応答コメントを返すことを確認
+3. `ai-plan.yml` が起動し、Claude が explorer → policy-sentinel → architect の順で分析したコメントを返すことを確認
+   - `ANTHROPIC_API_KEY` 未設定の場合はエラーになります
 
 ### 3) ai-implement（Issueコメント）
 
 1. 対象Issueに `ai-ready` を付与（`ai-question` / `ai-blocked` は外す）
 2. Issueに `/run-claude implement` とコメント
-3. `ai-implement.yml` が起動し、最小版応答コメントを返すことを確認
+3. `ai-implement.yml` が起動し、Claude がテスト設計 → 実装 → CI → draft PR 作成を行うことを確認
+   - `ANTHROPIC_API_KEY` 未設定の場合はエラーになります
 
 ### 4) ai-review（PRコメント）
 
 1. 何らかのPRを1つ開く
 2. PRコメントに `/run-claude review` と投稿
-3. `ai-review.yml` が起動し、最小版応答コメントを返すことを確認
+3. `ai-review.yml` が起動し、Claude が PR 差分を点検してコメントを返すことを確認
+   - `ANTHROPIC_API_KEY` 未設定の場合はエラーになります
 
 ### 5) 失敗時の見る場所
 
@@ -144,10 +159,17 @@ reviewer が差分を点検 → 指摘・質問をコメントして返す
 ## 現在のテンプレ実装状況（2026-02時点）
 
 - 実装済み
-  - `issue-guard.yml`
-  - `ai-plan.yml`（最小版）
-  - `ai-implement.yml`（最小版）
-  - `ai-review.yml`（最小版）
+  - `issue-guard.yml` — Issue テンプレ検査・`ai-question` 自動付与
+  - `ai-plan.yml` — `claude-code-action` 統合（explorer → policy-sentinel → architect）
+  - `ai-implement.yml` — `claude-code-action` 統合（test-designer → 実装 → CI → draft PR）
+  - `ai-review.yml` — `claude-code-action` 統合（reviewer subagent による差分点検）
+  - `slash-commands.yml` — `/stop` `/retry` `/rebase` 補助コマンド
+  - `ci.yml` — CI 入口（`tools/ci.sh`、派生 Repo で実装）
+  - `policy-gate.yml` — policy.yml ベースの差分検査
+  - `.claude/agents/` — 5体の Subagent 設定（explorer / architect / test-designer / policy-sentinel / reviewer）
 - 運用方針
   - **手動マージ固定**（safe-to-merge / enable-automerge は不使用）
   - required checks（`ci` / `policy-gate`）成功後に人間がマージ
+- 注意事項
+  - `anthropics/claude-code-action@v1` の入力パラメータはリリース版で要確認
+  - 派生 Repo では `ANTHROPIC_API_KEY` Secret の設定が必須
