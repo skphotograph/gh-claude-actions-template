@@ -9,6 +9,10 @@ permissions:
   pull-requests: write
   issues: write
 
+concurrency:
+  group: run-claude-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
 jobs:
   ai-implement:
     if: >-
@@ -16,7 +20,8 @@ jobs:
       startsWith(github.event.comment.body, '/run-claude implement')
     runs-on: ubuntu-latest
     steps:
-      - name: Validate labels and reply with implement stub
+      - name: Validate labels
+        id: guard
         uses: actions/github-script@v7
         with:
           script: |
@@ -49,24 +54,65 @@ jobs:
                 body,
               });
               core.setFailed("ai-implement preconditions are not satisfied");
-              return;
             }
 
-            const body = [
-              "`/run-claude implement` を受け付けました（最小版）。",
-              "",
-              "次フェーズで、以下を実装していきます：",
-              "- ブランチ作成と実装適用",
-              "- テスト実行（CI入口コマンド）",
-              "- draft PR作成",
-              "- AC→Test の記録",
-              "",
-              "現時点では implement 実行の器（起動・ガード・応答）まで実装済みです。",
-            ].join("\n");
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body,
-            });
+      - name: Run Claude implement
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          direct_prompt: |
+            Issue #${{ github.event.issue.number }} を実装してください。
+
+            ## あなたの役割
+            実装者です。以下の手順で進めてください。
+
+            ### Step 1: test-designer（テスト設計）
+            - Issue の「✅ 受け入れ条件（AC）」と「🧪 テスト観点」を読む
+            - 各ACに対してテストケースを設計する（AC → Test 対応表を作成）
+            - テストが書けない場合（A/B/C判定）を特定する
+              - C判定（仕様不明）があれば **推測せず** 質問リストを提示して停止する
+              - B判定があれば `ai-blocked` を推奨して停止する
+            - テストを先に書く（Test-First）
+
+            ### Step 2: 実装
+            - `policy.yml` を読み、`allowed_dirs` / `hard_gate` を確認する
+            - ブランチを作成する: `ai/issue-${{ github.event.issue.number }}-<issue-タイトルのスラッグ>`
+            - 変更は `allowed_dirs` の範囲内に収める
+            - `hard_gate` のパスには絶対に触れない
+            - `soft_gate` のパスに触れる場合は対応ラベル（`allow-deps` / `allow-config`）がなければ停止する
+
+            ### Step 3: CI 実行
+            - `tools/ci.sh` を実行してテストが通ることを確認する
+            - テストが失敗した場合は最大2ラウンド自動修正を試みる
+            - 修正できない場合は draft PR を作成して停止する
+
+            ### Step 4: draft PR 作成
+            - ブランチを push する
+            - PR を draft で作成する
+            - PR タイトル: `[AI] <Issue タイトル>`
+            - PR 本文には以下を含める:
+              - 目的（Issue番号へのリンク）
+              - 変更点リスト
+              - AC → Test 対応表
+              - 影響範囲
+              - リスクとロールバック手順
+              - 実行ログ（Run ID: ${{ github.run_id }}）
+            - Issue に `draft-pr` ラベルを付与する
+
+            ## 停止条件（draft PR で留める）
+            - CI が失敗し自動修正できない場合
+            - テスト設計で C/B 判定の AC が存在する場合
+            - Policy gate 違反の変更が必要な場合
+
+            ## 禁止事項
+            - `hard_gate` に抵触するファイルへの変更
+            - 例外ラベルなしでの `soft_gate` 対象ファイルへの変更
+            - ラベルなしのマージ（draft 状態を維持すること）
+
+            ## Issue本文
+            ${{ github.event.issue.body }}
+          allowed_tools: "Read,Glob,Grep,Write,Edit,Bash"

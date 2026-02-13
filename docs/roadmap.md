@@ -46,43 +46,43 @@
 
 ## Phase 4：Subagent をテンプレに同梱（project-level）
 
-1. 初期4体を作成 ⬜
+1. 初期4体を作成 ✅
    - `explorer`, `architect`, `test-designer`, `policy-sentinel`
-2. Subagent共通ルール（read-only等）を README に明記 ⬜
-3. `/run-claude plan` と `/run-claude implement` の委譲順を README に明記 ⬜
+2. Subagent共通ルール（read-only等）を README に明記 ✅
+3. `/run-claude plan` と `/run-claude implement` の委譲順を README に明記 ✅
 
 ---
 
 ## Phase 5：コメントコマンド基盤（slash-command-dispatch）
 
-1. `/run-claude plan` / `/run-claude implement` / `/retry` / `/rebase` / `/stop` を実装 ⬜
-2. concurrency（Issue/PR単位）導入 ⬜
+1. `/run-claude plan` / `/run-claude implement` / `/retry` / `/rebase` / `/stop` を実装 ✅
+2. concurrency（Issue/PR単位）導入 ✅
 
 ---
 
 ## Phase 6：Claude Code Action 導入（plan → implement）
 
-1. Secrets設計を README に記載（各アプリRepoで `ANTHROPIC_API_KEY` 設定） ⬜
-2. `ai-plan.yml`（コメント起動のみ、read-only） ✅（最小版）
-3. `ai-implement.yml`（コメント起動のみ、draft PR作成） ✅（最小版）
+1. Secrets設計を README に記載（各アプリRepoで `ANTHROPIC_API_KEY` 設定） ✅
+2. `ai-plan.yml`（コメント起動のみ、read-only） ✅（claude-code-action 統合）
+3. `ai-implement.yml`（コメント起動のみ、draft PR作成） ✅（claude-code-action 統合）
 
 ---
 
 ## Phase 7：PRレビュー用 Subagent と reviewコマンド
 
-1. `reviewer` Subagent 作成 ⬜
-2. `ai-review.yml`（`/run-claude review`）導入 ✅（最小版）
+1. `reviewer` Subagent 作成 ✅
+2. `ai-review.yml`（`/run-claude review`）導入 ✅（claude-code-action 統合）
 
 ---
 
 ## Phase 8：テンプレ完成判定
 
-- policy gate / CI / issue-guard / plan / implement / review が揃い ✅（最小版）
-- README に「各アプリRepoでやること（Secrets、Branch protection等）」が明記されている ⬜
+- policy gate / CI / issue-guard / plan / implement / review が揃い ✅
+- README に「各アプリRepoでやること（Secrets、Branch protection等）」が明記されている ✅
 
 ### 進捗メモ（2026-02）
 
-- ✅ 完了
+- ✅ 完了（Phase 1-3）
   - Template repo化（Template ON）
   - `policy.yml` + `tools/policy-gate.js` の実装（globの正規表現バグ修正含む）
   - `policy-gate` workflow 作成・PRで動作
@@ -90,10 +90,19 @@
   - **Ruleset適用で main 直push禁止**
   - required checks `ci` / `policy-gate` が揃うまで **Mergeがブロックされる**ことを確認
 - ⚠️ 調整中（未収束）
-  - `ci.yml` が呼ぶ **CI入口（tools/ci.sh）** のテンプレ固定（Actionsで “No such file” が出た件）
+  - `ci.yml` が呼ぶ **CI入口（tools/ci.sh）** のテンプレ固定（Actionsで "No such file" が出た件）
 - ❌ 採用しない方針に確定
   - `safe-to-merge` / `enable-automerge` によるAuto-merge（不安定・手間対効果が薄いため撤回）
   - マージ方針：**手動マージ固定（A運用）**
+- ✅ 完了（Phase 4-8）
+  - Phase 4: `.claude/agents/`（explorer / architect / test-designer / policy-sentinel）作成
+  - Phase 5: concurrency 追加 + `slash-commands.yml`（`/retry` `/rebase` `/stop`）追加
+  - Phase 6: `ai-plan.yml` / `ai-implement.yml` を `claude-code-action@v1` 統合版に更新、Secrets設計をREADMEに追記
+  - Phase 7: `.claude/agents/reviewer.md` 作成 + `ai-review.yml` を `claude-code-action@v1` 統合版に更新
+  - Phase 8: フレームワーク整備完了（policy gate / CI / issue-guard / plan / implement / review 揃い）
+- スモーク結果は `docs/workflow_smoke_results.md` を参照
+- マージ方針は手動マージ固定（safe-to-merge / enable-automerge 不使用）
+- `anthropics/claude-code-action@v1` の実際の入力パラメータはリリース時に要確認
 
 ---
 

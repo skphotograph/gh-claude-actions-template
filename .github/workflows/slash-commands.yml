@@ -1,0 +1,205 @@
+name: slash-commands
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  # ──────────────────────────────────────────────
+  # /stop: ai-blocked ラベルを付与して停止を宣言
+  # ──────────────────────────────────────────────
+  stop:
+    if: startsWith(github.event.comment.body, '/stop')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add ai-blocked label and post comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.payload.issue.number;
+
+            // ai-blocked ラベルを付与
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number,
+              labels: ["ai-blocked"],
+            });
+
+            // ai-ready ラベルを外す（次回コマンドの誤爆防止）
+            try {
+              await github.rest.issues.removeLabel({
+                owner,
+                repo,
+                issue_number,
+                name: "ai-ready",
+              });
+            } catch (_) {
+              // ラベルが付いていない場合は無視
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: [
+                "🛑 `/stop` を受け付けました。",
+                "",
+                "- `ai-blocked` ラベルを付与しました",
+                "- `ai-ready` ラベルを外しました",
+                "",
+                "次回の AI 実行は `ai-blocked` を外し、`ai-ready` を付与してから再度コマンドを入力してください。",
+              ].join("\n"),
+            });
+
+  # ──────────────────────────────────────────────
+  # /retry: 直前のコマンドを再実行
+  #   draft-pr ラベルあり → implement 相当のコメントを誘導
+  #   draft-pr ラベルなし → plan 相当のコメントを誘導
+  # ──────────────────────────────────────────────
+  retry:
+    if: >-
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, '/retry')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check labels and post retry guidance
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.payload.issue.number;
+
+            const labels = (context.payload.issue.labels || []).map(l => l.name);
+            const hasDraftPr = labels.includes("draft-pr");
+            const blocked = labels.includes("ai-question") || labels.includes("ai-blocked");
+
+            if (blocked) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: [
+                  "⚠️ `/retry` はブロック中のため実行できません。",
+                  "",
+                  "- `ai-question` または `ai-blocked` ラベルが付いています",
+                  "",
+                  "対応後にもう一度お試しください。",
+                ].join("\n"),
+              });
+              core.setFailed("retry blocked by ai-question/ai-blocked");
+              return;
+            }
+
+            const nextCommand = hasDraftPr ? "/run-claude implement" : "/run-claude plan";
+            const stage = hasDraftPr ? "implement" : "plan";
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: [
+                `🔄 \`/retry\` を受け付けました。`,
+                "",
+                `直前のステージ（**${stage}**）を再実行します。`,
+                `以下のコメントを入力してください：`,
+                "",
+                `\`\`\``,
+                nextCommand,
+                `\`\`\``,
+                "",
+                "> 注: `/retry` は再実行のガイドのみ行います。実際の再実行は上記コマンドを入力してください。",
+              ].join("\n"),
+            });
+
+  # ──────────────────────────────────────────────
+  # /rebase: Issue に紐づく draft PR のブランチを
+  #          デフォルトブランチで最新化（update-branch）
+  # ──────────────────────────────────────────────
+  rebase:
+    if: >-
+      github.event.issue.pull_request == null &&
+      startsWith(github.event.comment.body, '/rebase')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find associated PR and update branch
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.payload.issue.number;
+
+            // Issue に紐づく open な PR を探す
+            const { data: prs } = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: "open",
+            });
+
+            // ブランチ名に issue 番号が含まれるものを探す
+            const pattern = `ai/issue-${issue_number}-`;
+            const pr = prs.find(p => p.head.ref.startsWith(pattern));
+
+            if (!pr) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: [
+                  "⚠️ `/rebase` の対象となる PR が見つかりませんでした。",
+                  "",
+                  `- ブランチ名が \`ai/issue-${issue_number}-*\` に一致する open PR がありません`,
+                  "",
+                  "`/run-claude implement` で draft PR を作成してから `/rebase` を実行してください。",
+                ].join("\n"),
+              });
+              core.setFailed("no PR found for rebase");
+              return;
+            }
+
+            // GitHub の update-branch API でブランチを最新化
+            try {
+              await github.rest.pulls.updateBranch({
+                owner,
+                repo,
+                pull_number: pr.number,
+              });
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: [
+                  `✅ \`/rebase\` 完了: PR #${pr.number} のブランチを最新化しました。`,
+                  "",
+                  `- ブランチ: \`${pr.head.ref}\``,
+                  `- PR: ${pr.html_url}`,
+                ].join("\n"),
+              });
+            } catch (err) {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: [
+                  `❌ \`/rebase\` 失敗: PR #${pr.number} のブランチ更新に失敗しました。`,
+                  "",
+                  `\`\`\``,
+                  String(err.message),
+                  `\`\`\``,
+                  "",
+                  "コンフリクトがある場合は手動で解消してください。",
+                ].join("\n"),
+              });
+              core.setFailed(`rebase failed: ${err.message}`);
+            }

@@ -5,6 +5,7 @@ allowed_dirs:
   - 'test/**'
   - 'docs/**'
   - 'tools/**'
+  - '.claude/**'
 
 allowed_files:
   - 'policy.yml'
@@ -44,3 +45,8 @@ bootstrap:
   allow_workflows: true
   allowed_dirs_extra:
     - '.github/workflows/**'
+  limits:
+    max_files_changed: 20
+    max_diff_lines: 1000
+    max_new_files: 10
+    max_deleted_files: 5
