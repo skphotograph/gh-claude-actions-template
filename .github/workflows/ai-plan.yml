@@ -8,6 +8,10 @@ permissions:
   contents: read
   issues: write
 
+concurrency:
+  group: run-claude-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
 jobs:
   ai-plan:
     if: >-
@@ -15,7 +19,8 @@ jobs:
       startsWith(github.event.comment.body, '/run-claude plan')
     runs-on: ubuntu-latest
     steps:
-      - name: Validate labels and reply with plan stub
+      - name: Validate labels
+        id: guard
         uses: actions/github-script@v7
         with:
           script: |
@@ -48,24 +53,49 @@ jobs:
                 body,
               });
               core.setFailed("ai-plan preconditions are not satisfied");
-              return;
             }
 
-            const body = [
-              "`/run-claude plan` を受け付けました（最小版）。",
-              "",
-              "次フェーズで、以下を自動化していきます：",
-              "- Issue本文の要件抽出",
-              "- 変更対象ファイル案（read-only）",
-              "- テスト戦略（AC→Test）",
-              "- リスク/ロールバック案",
-              "",
-              "現時点では plan 実行の器（起動・ガード・応答）まで実装済みです。",
-            ].join("\n");
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body,
-            });
+      - name: Run Claude plan
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+          direct_prompt: |
+            Issue #${{ github.event.issue.number }} の内容を読み、実装計画（plan）を作成してください。
+
+            ## あなたの役割
+            read-only 分析者です。コードを一切変更せず、以下の順序で調査・設計してください。
+
+            ### Step 1: explorer（現状把握）
+            - Issue の「📌 仕様」「🔄 影響範囲」「⛓ 制約・前提」を読む
+            - 変更が必要と思われるファイルを Glob / Grep / Read で特定する
+            - 関連する既存テストを探す
+            - `policy.yml` を読み、`allowed_dirs` / `hard_gate` / `soft_gate` を確認する
+
+            ### Step 2: policy-sentinel（ポリシー確認）
+            - 変更候補ファイルが `allowed_dirs` / `allowed_files` に収まるか確認する
+            - `hard_gate` に抵触するパスが含まれていないか確認する（抵触なら即停止）
+            - `soft_gate` 抵触がある場合は必要な例外ラベルを提示する
+            - `limits` の上限（ファイル数・diff行数）を超えないか見積もる
+
+            ### Step 3: architect（設計案）
+            - 方針A / 方針B を提示する（存在する場合）
+            - 変更点リスト（ファイル単位）を作成する
+            - Issue の「✅ 受け入れ条件」に対する AC → Test 対応表を作成する
+            - リスクとロールバック案を提示する
+
+            ## 停止条件
+            - 仕様不足（spec gap）を発見したら **推測せず** 質問リストを提示して停止する
+              - コメント末尾に「⚠️ ai-question ラベルを付与して再度 /run-claude plan を実行してください。」と促す
+            - Hard Gate に抵触する変更が必要な場合は即停止する
+
+            ## 出力形式
+            このIssue（#${{ github.event.issue.number }}）にコメントとして投稿する。
+            コメントの冒頭に `## 📋 Plan: Issue #${{ github.event.issue.number }}` と記載する。
+
+            ## Issue本文
+            ${{ github.event.issue.body }}
+          allowed_tools: "Read,Glob,Grep,WebFetch"
