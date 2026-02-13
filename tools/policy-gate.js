@@ -281,17 +281,26 @@ function main() {
   if (configHits.length && !allowConfig)
     die(`Soft gate (config) hit without allow: ${configHits.join(', ')}`);
 
+  // Limits (bootstrap.limits overrides base limits when bootstrap mode is active)
+  const effectiveLimits =
+    allowWorkflows && bootstrap.limits
+      ? { ...limits, ...bootstrap.limits }
+      : limits;
+  if (allowWorkflows && bootstrap.limits) {
+    console.log('policy-gate: bootstrap limits active', effectiveLimits);
+  }
+
   // Limits
   function over(name, actual, max) {
     return typeof max === 'number' && max >= 0 && actual > max;
   }
-  if (over('max_files_changed', filesChanged, limits.max_files_changed))
+  if (over('max_files_changed', filesChanged, effectiveLimits.max_files_changed))
     die(`Limit exceeded: filesChanged=${filesChanged}`);
-  if (over('max_new_files', newFiles, limits.max_new_files))
+  if (over('max_new_files', newFiles, effectiveLimits.max_new_files))
     die(`Limit exceeded: newFiles=${newFiles}`);
-  if (over('max_deleted_files', deletedFiles, limits.max_deleted_files))
+  if (over('max_deleted_files', deletedFiles, effectiveLimits.max_deleted_files))
     die(`Limit exceeded: deletedFiles=${deletedFiles}`);
-  if (over('max_diff_lines', diffLines, limits.max_diff_lines))
+  if (over('max_diff_lines', diffLines, effectiveLimits.max_diff_lines))
     die(`Limit exceeded: diffLines=${diffLines}`);
 
   console.log('policy-gate: PASS');
