@@ -13,6 +13,7 @@ allowed_files:
   - '.github/workflows/policy-gate.yml'
   - '.github/ISSUE_TEMPLATE/ai-issue.md'
   - '.github/PULL_REQUEST_TEMPLATE.md'
+  - '.github/labels.yml'
   - 'README.md'
 
 hard_gate:

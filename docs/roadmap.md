@@ -38,9 +38,8 @@
 ## Phase 3：ラベル運用・導入手順の整備
 
 1. 必須ラベル一覧を README 化 ✅
-2. ラベル投入方式を決める ⬜
-   - 少数なら手動
-   - 増えるなら `labels.yml` + GitHub CLI の投入手順（推奨）
+2. ラベル投入方式を決める ✅
+   - `.github/labels.yml` + `tools/setup-labels.sh`（GitHub CLI）で一括登録
 
 ---
 
@@ -89,8 +88,8 @@
   - `ci` workflow 作成（required checkとして見える）
   - **Ruleset適用で main 直push禁止**
   - required checks `ci` / `policy-gate` が揃うまで **Mergeがブロックされる**ことを確認
-- ⚠️ 調整中（未収束）
-  - `ci.yml` が呼ぶ **CI入口（tools/ci.sh）** のテンプレ固定（Actionsで "No such file" が出た件）
+- ✅ 解消済み
+  - `tools/ci.sh` のプレースホルダー確定（"No such file" 解消済み、`bash tools/ci.sh` で pass）
 - ❌ 採用しない方針に確定
   - `safe-to-merge` / `enable-automerge` によるAuto-merge（不安定・手間対効果が薄いため撤回）
   - マージ方針：**手動マージ固定（A運用）**
