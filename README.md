@@ -125,7 +125,7 @@ Issue は `.github/ISSUE_TEMPLATE/ai-issue.md` のテンプレートに従って
 | ゲート | 対象例 | 動作 |
 |--------|--------|------|
 | **Hard Gate** | `.github/workflows/**`, `migrations/**`, `policy.yml` | 原則即 FAIL（`allowed_files` 明示分は許可） |
-| **Soft Gate** | `package.json`（deps）, `*.yml`（config） | 例外ラベル（`allow-deps` / `allow-config`）で解除可 |
+| **Soft Gate** | `package.json`（deps）, `*.yml` / `config/**/*.yml`（config） | 例外ラベル（`allow-deps` / `allow-config`）で解除可 |
 
 Soft Gate 対象を変更する場合は、**例外ラベル付与 + `/run-claude plan` の事前合意**が必要です。
 

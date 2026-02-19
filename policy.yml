@@ -32,9 +32,12 @@ soft_gate:
     - 'build.gradle.kts'
     - 'gradle.properties'
   config:
-    - '**/*.yml'
-    - '**/*.yaml'
-    - '**/*.properties'
+    - '*.yml'
+    - '*.yaml'
+    - '*.properties'
+    - 'config/**/*.yml'
+    - 'config/**/*.yaml'
+    - 'config/**/*.properties'
 
 limits:
   max_files_changed: 10
