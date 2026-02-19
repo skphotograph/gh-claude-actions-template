@@ -8,7 +8,6 @@ allowed_dirs:
   - '.claude/**'
 
 allowed_files:
-  - 'policy.yml'
   - '.github/workflows/ci.yml'
   - '.github/workflows/policy-gate.yml'
   - '.github/ISSUE_TEMPLATE/ai-issue.md'
@@ -17,6 +16,8 @@ allowed_files:
   - 'README.md'
 
 hard_gate:
+  - 'policy.yml'
+  - 'tools/policy-gate.js'
   - '.github/workflows/**'
   - 'migrations/**'
   - 'ddl/**'
