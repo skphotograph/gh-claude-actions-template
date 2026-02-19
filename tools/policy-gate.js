@@ -263,9 +263,12 @@ function main() {
     diffLines,
   });
 
-  // Hard gate
+  // Hard gate (allowed_files entries explicitly override hard_gate)
   const hardHits = changes
-    .filter((c) => anyMatch(effectiveHardGate, c.path))
+    .filter(
+      (c) =>
+        anyMatch(effectiveHardGate, c.path) && !allowedFiles.includes(c.path),
+    )
     .map((c) => c.path);
   if (hardHits.length) {
     die(`Hard gate violation: ${hardHits.join(', ')}`);
