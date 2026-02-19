@@ -9,7 +9,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: run-claude-${{ github.event.issue.number }}
+  group: run-claude-plan-${{ github.event.issue.number }}
   cancel-in-progress: true
 
 jobs:
