@@ -22,7 +22,7 @@
 
 1. `policy.yml` を確定（Hard/Soft/allowed_dirs/上限） ✅（暫定確定）
    - `allowed_dirs` に `tools/**` を追加済み
-   - `allowed_files` に `policy.yml` と一部workflowを例外許可済み
+   - `allowed_files` に一部workflowを例外許可済み（`policy.yml` 自身は除外 → hard_gate + self-protection で保護）
    - `bootstrap.allow_workflows: true` と `bootstrap.allowed_dirs_extra` で初期構築時のworkflow改修を許容
    - soft gate（deps/config）は `ALLOW_DEPS` / `ALLOW_CONFIG` で解除する仕様まで実装済み
 2. `policy-gate.yml`（PR差分判定）作成 → required check化 ✅
@@ -99,6 +99,11 @@
   - Phase 6: `ai-plan.yml` / `ai-implement.yml` を `claude-code-action@v1` 統合版に更新、Secrets設計をREADMEに追記
   - Phase 7: `.claude/agents/reviewer.md` 作成 + `ai-review.yml` を `claude-code-action@v1` 統合版に更新
   - Phase 8: フレームワーク整備完了（policy gate / CI / issue-guard / plan / implement / review 揃い）
+- ✅ セキュリティ強化
+  - `policy.yml` を `allowed_files` から除外 → `hard_gate` に移動
+  - `tools/policy-gate.js` も `hard_gate` に追加
+  - `policy-gate.js` にハードコード self-protection を追加（ポリシー読み込み前チェック）
+  - README に bootstrap 運用ガイド・派生リポジトリ向けセットアップチェックリストを追加
 - スモーク結果は `docs/workflow_smoke_results.md` を参照
 - マージ方針は手動マージ固定（safe-to-merge / enable-automerge 不使用）
 - `anthropics/claude-code-action@v1` の実際の入力パラメータはリリース時に要確認
