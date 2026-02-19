@@ -11,7 +11,7 @@
 
 ## A. テンプレートの仕組み不備（機能しない設計がある）
 
-### A-1. Soft Gate のラベル連動が未実装【重大】
+### A-1. Soft Gate のラベル連動が未実装【重大】 ✅ 対応済み（2026-02-19 / `fix/a1-soft-gate-label-control`）
 
 - **対象**: `.github/workflows/policy-gate.yml` L29-30
 - **状況**: `ALLOW_DEPS: 'false'`、`ALLOW_CONFIG: 'true'` がハードコード。PR ラベル（`allow-deps` / `allow-config`）を動的に読み取るロジックが存在しない
