@@ -163,11 +163,30 @@ function parseArgs() {
   return out;
 }
 
+// Hardcoded self-protection: these files must NEVER appear in a diff.
+// This check runs before policy.yml is even loaded, preventing an attacker
+// from weakening the policy and bypassing the gate in the same PR.
+const PROTECTED_FILES = ['policy.yml', 'tools/policy-gate.js'];
+
 function main() {
   const args = parseArgs();
 
   const policyPath = args.policy || 'policy.yml';
   if (!fs.existsSync(policyPath)) die(`Missing ${policyPath}`);
+
+  // --- Self-protection check (hardcoded, not configurable) ---
+  const base0 = args.base || process.env.POLICY_BASE || 'origin/main';
+  const head0 = args.head || process.env.POLICY_HEAD || 'HEAD';
+  try {
+    const earlyDiff = sh(`git diff --name-only ${base0}..${head0}`);
+    const changedFiles = earlyDiff ? earlyDiff.split('\n').map((f) => f.trim()) : [];
+    const selfHits = changedFiles.filter((f) => PROTECTED_FILES.includes(f));
+    if (selfHits.length) {
+      die(`Self-protection violation: ${selfHits.join(', ')} cannot be modified by AI agents`);
+    }
+  } catch {
+    // If refs are not available yet, the later checks will catch it
+  }
 
   const policy = parseSimpleYaml(fs.readFileSync(policyPath, 'utf8'));
 
