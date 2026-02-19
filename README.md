@@ -119,6 +119,74 @@ bash tools/setup-labels.sh OWNER/REPO  # 明示指定する場合
 
 ---
 
+## policy.yml 運用ガイド
+
+### Bootstrap モード
+
+`policy.yml` の `bootstrap` セクションは、リポジトリの初期構築フェーズで AI エージェントにワークフロー変更や大量ファイル変更を許可するための仕組みです。
+
+```yaml
+bootstrap:
+  allow_workflows: true        # ワークフロー変更を許可
+  allowed_dirs_extra:
+    - '.github/workflows/**'   # hard_gate のワークフロー除外を解除
+  limits:                      # 通常より緩い上限
+    max_files_changed: 20
+    max_diff_lines: 1000
+    max_new_files: 10
+    max_deleted_files: 5
+```
+
+| 項目 | Bootstrap ON (`true`) | Bootstrap OFF (`false`) |
+|------|----------------------|------------------------|
+| `.github/workflows/**` の変更 | 許可（hard_gate から除外） | 禁止（hard_gate で即 FAIL） |
+| `allowed_dirs` の拡張 | `allowed_dirs_extra` が追加される | 通常の `allowed_dirs` のみ |
+| ファイル変更上限 | `bootstrap.limits` で上書き | `limits` の値を適用 |
+
+### Bootstrap を無効化するタイミング
+
+以下の条件を全て満たしたら `allow_workflows: false` に変更してください:
+
+1. ワークフロー（`.github/workflows/`）の初期構築が完了した
+2. CI / policy-gate が required check として動作している
+3. AI エージェントにワークフロー変更を許可する必要がなくなった
+
+```yaml
+# 変更箇所
+bootstrap:
+  allow_workflows: false   # true → false に変更
+```
+
+> **重要**: `policy.yml` は hard_gate で保護されており、AI エージェントは変更できません。この変更は**人間が手動で**行ってください。
+
+### セルフプロテクション
+
+以下のファイルは AI エージェントによる変更が二重に禁止されています:
+
+| 保護対象 | 防御レイヤー 1 | 防御レイヤー 2 |
+|---------|---------------|---------------|
+| `policy.yml` | `hard_gate` に記載 | `policy-gate.js` にハードコード |
+| `tools/policy-gate.js` | `hard_gate` に記載 | `policy-gate.js` にハードコード |
+
+- **レイヤー 1**: `policy.yml` の `hard_gate` ルールで検出 → FAIL
+- **レイヤー 2**: `policy-gate.js` 内のハードコードチェックが `policy.yml` の読み込み**前**に実行 → ポリシー改ざんによるバイパスを防止
+
+これらのファイルを変更する PR は policy-gate が必ず FAIL するため、**admin merge** が必要です。
+
+### 派生リポジトリのセットアップチェックリスト
+
+テンプレートから新規リポジトリを作成した後、以下を順に実施してください:
+
+- [ ] `ANTHROPIC_API_KEY` Secret を設定
+- [ ] `bash tools/setup-labels.sh` で必須ラベルを一括登録
+- [ ] Branch protection で `ci` / `policy-gate` を required check に設定
+- [ ] `tools/ci.sh` にプロジェクト固有の CI コマンドを実装
+- [ ] `policy.yml` の `allowed_dirs` をプロジェクト構造に合わせて調整
+- [ ] 初期構築完了後、`bootstrap.allow_workflows` を `false` に変更
+- [ ] スモークテスト: Issue → `/run-claude plan` → `/run-claude implement` → draft PR → `/run-claude review` → merge
+
+---
+
 ## Subagent 運用
 
 ### 初期セット（`.claude/agents/`）
