@@ -158,6 +158,8 @@ function parseArgs() {
     else if (a === '--policy') out.policy = args[++i];
     else if (a === '--allow-deps') out.allowDeps = true;
     else if (a === '--allow-config') out.allowConfig = true;
+    else if (a === '--phase-bootstrap') out.phaseBootstrap = true;
+    else if (a === '--phase-stable') out.phaseStable = true;
     else die(`Unknown arg: ${a}`);
   }
   return out;
@@ -197,7 +199,22 @@ function main() {
 
   // bootstrap: allow modifying workflows during initial setup
   const bootstrap = policy.bootstrap || {};
-  const allowWorkflows = bootstrap.allow_workflows === true;
+  const phaseBootstrap =
+    args.phaseBootstrap || process.env.PHASE_BOOTSTRAP === 'true';
+  const phaseStable = args.phaseStable || process.env.PHASE_STABLE === 'true';
+  if (phaseBootstrap && phaseStable) {
+    die(
+      'Phase label conflict: both phase-bootstrap and phase-stable are set. Keep only one.',
+    );
+  }
+
+  const allowWorkflows =
+    phaseBootstrap ? true : phaseStable ? false : bootstrap.allow_workflows === true;
+  const phaseSource = phaseBootstrap
+    ? 'phase-bootstrap label'
+    : phaseStable
+      ? 'phase-stable label'
+      : 'policy.yml bootstrap.allow_workflows';
 
   const allowedDirsBase = policy.allowed_dirs || [];
   const allowedDirsExtra = allowWorkflows
@@ -262,6 +279,7 @@ function main() {
     deletedFiles,
     diffLines,
   });
+  console.log('policy-gate: workflow phase source', phaseSource);
 
   // Hard gate (allowed_files entries explicitly override hard_gate)
   const hardHits = changes
