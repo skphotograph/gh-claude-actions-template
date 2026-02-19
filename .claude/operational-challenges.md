@@ -25,7 +25,7 @@
 - **影響**: 「特定ワークフローだけ AI に変更許可」という意図が実現できない
 - **対応**: `policy-gate.js` で `allowed_files` を hard_gate より優先評価するか、矛盾するエントリを整理する
 
-### A-3. `phase-bootstrap` / `phase-stable` ラベルが未使用【中】
+### A-3. `phase-bootstrap` / `phase-stable` ラベルが未使用【中】 ✅ 対応済み（2026-02-19 / `fix/a3-phase-labels-bootstrap-control`）
 
 - **対象**: `.github/labels.yml` L21-27
 - **状況**: ラベル定義はあるが、どのワークフローでも参照されていない。bootstrap 判定は `policy.yml` の `allow_workflows` フラグのみで行われる

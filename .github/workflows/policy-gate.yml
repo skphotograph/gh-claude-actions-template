@@ -28,5 +28,8 @@ jobs:
           # Soft gate controls are derived from PR labels.
           ALLOW_DEPS: '${{ contains(github.event.pull_request.labels.*.name, ''allow-deps'') }}'
           ALLOW_CONFIG: '${{ contains(github.event.pull_request.labels.*.name, ''allow-config'') }}'
+          # Phase controls are derived from PR labels.
+          PHASE_BOOTSTRAP: '${{ contains(github.event.pull_request.labels.*.name, ''phase-bootstrap'') }}'
+          PHASE_STABLE: '${{ contains(github.event.pull_request.labels.*.name, ''phase-stable'') }}'
         run: |
           node tools/policy-gate.js --base "$POLICY_BASE" --head "$POLICY_HEAD"

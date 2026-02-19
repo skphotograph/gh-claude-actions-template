@@ -139,6 +139,12 @@ Soft Gate 対象を変更する場合は、**例外ラベル付与 + `/run-claud
 | `allowed_dirs` の拡張 | `allowed_dirs_extra` が追加される | 通常の `allowed_dirs` のみ |
 | ファイル変更上限 | `bootstrap.limits` で上書き | `limits` の値を適用 |
 
+PR ラベルでフェーズを一時的に上書きできます:
+
+- `phase-bootstrap`: `bootstrap.allow_workflows: true` 相当として扱う
+- `phase-stable`: `bootstrap.allow_workflows: false` 相当として扱う
+- `phase-bootstrap` と `phase-stable` を同時付与した場合は `policy-gate` を FAIL
+
 以下の条件を全て満たしたら `allow_workflows: false` に変更してください:
 
 1. ワークフロー（`.github/workflows/`）の初期構築が完了した
@@ -187,8 +193,8 @@ Soft Gate 対象を変更する場合は、**例外ラベル付与 + `/run-claud
 | `ai-question`     | 仕様不足・質問待ち（AI 停止）                |
 | `ai-blocked`      | 人間判断待ち（AI 停止）                      |
 | `draft-pr`        | AI 作成のドラフト PR                         |
-| `phase-bootstrap` | 初期構築フェーズ（仕様変更を儀式化して許容） |
-| `phase-stable`    | 安定運用フェーズ（デフォルト）               |
+| `phase-bootstrap` | 初期構築フェーズ（`bootstrap` 動作へ上書き） |
+| `phase-stable`    | 安定運用フェーズ（`stable` 動作へ上書き）    |
 | `allow-deps`      | 依存ファイル変更の例外許可（Soft Gate 解除） |
 | `allow-config`    | 設定ファイル変更の例外許可（Soft Gate 解除） |
 
