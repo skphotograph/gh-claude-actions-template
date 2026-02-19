@@ -18,7 +18,7 @@
 - **影響**: Soft Gate の設計意図（ラベルで例外許可を制御）が全く機能していない。`ALLOW_CONFIG: 'true'` により設定ファイル変更が常時素通し
 - **対応**: PR ラベルを取得して環境変数に反映するステップを追加
 
-### A-2. `allowed_files` と `hard_gate` の評価順矛盾【重要】
+### A-2. `allowed_files` と `hard_gate` の評価順矛盾【重要】 ✅ 対応済み（2026-02-19 / `fix/a2-allowed-files-priority`）
 
 - **対象**: `policy.yml` L10-11 vs L20, `tools/policy-gate.js` L267-283
 - **状況**: `.github/workflows/ci.yml` 等が `allowed_files` に含まれるが、`hard_gate` の `.github/workflows/**` が先に評価されて即 FAIL。Bootstrap OFF 時に `allowed_files` が無意味
