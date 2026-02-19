@@ -3,7 +3,6 @@ policy_version: 1
 allowed_dirs:
   - 'src/**'
   - 'test/**'
-  - 'docs/**'
   - 'tools/**'
   - '.claude/**'
 

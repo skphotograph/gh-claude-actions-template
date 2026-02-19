@@ -1,9 +1,7 @@
 # Claude Code × GitHub Actions テンプレートリポジトリ
 
-GitHub Issues からAIエージェント（Claude）が計画・実装・レビューを行うテンプレートです。
+GitHub Issues から AI エージェント（Claude）が計画・実装・レビューを行うテンプレートです。
 policy gate による差分制御と、人間による手動マージ運用を前提としています。
-
-[運用方針](./docs/operation_policy.md) | [ロードマップ](./docs/roadmap.md)
 
 ---
 
@@ -43,17 +41,97 @@ policy gate による差分制御と、人間による手動マージ運用を�
 
 > slash command は **バッククォートなし** で入力してください。`` `/run-claude plan` `` のように囲むと条件不一致で skipped になります。
 
-### マージ方針
+---
 
-**手動マージ運用**です。required checks（`ci` / `policy-gate`）が成功した PR を、人間が確認してマージします。
+## AI の動作ルール
+
+### 停止条件
+
+以下のいずれかが発生すると AI は即停止します（自動で継続しません）:
+
+- CI 失敗
+- lint 失敗
+- テスト不足（受け入れ条件に対するテストが用意できない）
+- policy gate 失敗（禁止変更・diff 上限・許可パス逸脱）
+- 仕様不足（推測せず `ai-question` を付与して質問）
+
+### 人間の介入ポイント
+
+| フェーズ | 主体 |
+|---------|------|
+| 要件定義・ゴール設定 | 人間（AI は壁打ち） |
+| 設計・アーキテクチャ判断 | 人間（AI は選択肢提示） |
+| 実装・テスト生成 | AI |
+| レビュー・マージ判断 | **人間 100%** |
+
+### ブランチ命名規則
+
+AI が作成する PR のブランチ名:
+
+```
+ai/issue-<number>-<slug>
+```
+
+例: `ai/issue-123-fix-login-timeout`
+
+### テスト方針
+
+PR 本文に **AC → Test 対応表**（各受け入れ条件をどのテストで担保したか）を必須記載します。
+
+テストが書けない場合の分類:
+
+| 分類 | 状況 | AI の動作 |
+|------|------|----------|
+| A | 環境・外部依存で CI 上で実行不可 | draft PR 作成 + 代替担保策を記載 |
+| B | テスト負債で基盤整備が先に必要 | plan で最小案を提示し停止（`ai-blocked`） |
+| C | 仕様・期待値が不明 | 質問して停止（`ai-question`） |
+
+### 自動修正の許容範囲
+
+| OK（自動修正可） | NG（停止して人間判断） |
+|------------------|----------------------|
+| formatter 適用 | 仕様変更が疑われる挙動変更 |
+| lint の自明修正（未使用 import 等） | タイムアウト・閾値等の非機能パラメータ変更 |
+| テストのセットアップ修正 | 依存追加・設定変更（Soft Gate 対象） |
+
+### 失敗時のリトライ上限
+
+- `/rebase`: 最大 1 回/実行
+- `/retry`: 最大 2 回
+- 自動 fix: 最大 2 ラウンド（それ以上は `ai-blocked`）
+
+---
+
+## Issue の書き方
+
+### テンプレート
+
+Issue は `.github/ISSUE_TEMPLATE/ai-issue.md` のテンプレートに従って作成してください。
+必須見出しが不足している場合、`issue-guard` が `ai-question` ラベルを付与して質問します。
+
+### 受け入れ条件（AC）のルール
+
+- **1 項目 = 1 判定**（複合条件にしない）
+- **曖昧語禁止**（「適切に」「正しく」ではなく具体的な条件を書く）
+- チェックリスト形式
+- 推奨: Given / When / Then 形式
 
 ---
 
 ## policy.yml 運用ガイド
 
+### 2 層ゲート
+
+| ゲート | 対象例 | 動作 |
+|--------|--------|------|
+| **Hard Gate** | `.github/workflows/**`, `migrations/**`, `policy.yml` | 即 FAIL（例外なし） |
+| **Soft Gate** | `package.json`（deps）, `*.yml`（config） | 例外ラベル（`allow-deps` / `allow-config`）で解除可 |
+
+Soft Gate 対象を変更する場合は、**例外ラベル付与 + `/run-claude plan` の事前合意**が必要です。
+
 ### Bootstrap モード
 
-`bootstrap` セクションは、初期構築フェーズで AI エージェントにワークフロー変更や大量ファイル変更を許可する仕組みです。
+`bootstrap` セクションは、初期構築フェーズで AI にワークフロー変更や大量ファイル変更を許可する仕組みです。
 
 | 項目 | Bootstrap ON (`true`) | Bootstrap OFF (`false`) |
 |------|----------------------|------------------------|
@@ -65,45 +143,33 @@ policy gate による差分制御と、人間による手動マージ運用を�
 
 1. ワークフロー（`.github/workflows/`）の初期構築が完了した
 2. CI / policy-gate が required check として動作している
-3. AI エージェントにワークフロー変更を許可する必要がなくなった
+3. AI にワークフロー変更を許可する必要がなくなった
 
-> **重要**: `policy.yml` は hard_gate で保護されており、AI エージェントは変更できません。この変更は**人間が手動で**行ってください。
+> **重要**: `policy.yml` は hard_gate で保護されており、AI は変更できません。この変更は**人間が手動で**行ってください。
 
 ### セルフプロテクション
 
-以下のファイルは AI エージェントによる変更が二重に禁止されています:
+`policy.yml` と `tools/policy-gate.js` は AI による変更が二重に禁止されています:
 
-| 保護対象 | 防御レイヤー 1 | 防御レイヤー 2 |
-|---------|---------------|---------------|
-| `policy.yml` | `hard_gate` に記載 | `policy-gate.js` にハードコード |
-| `tools/policy-gate.js` | `hard_gate` に記載 | `policy-gate.js` にハードコード |
+- **レイヤー 1**: `hard_gate` ルールで検出 → FAIL
+- **レイヤー 2**: `policy-gate.js` のハードコードチェックが policy 読み込み**前**に実行 → 改ざんバイパスを防止
 
-- **レイヤー 1**: `policy.yml` の `hard_gate` ルールで検出 → FAIL
-- **レイヤー 2**: `policy-gate.js` 内のハードコードチェックが `policy.yml` の読み込み**前**に実行 → ポリシー改ざんによるバイパスを防止
-
-これらのファイルを変更する PR は policy-gate が必ず FAIL するため、**admin merge** が必要です。
+これらを変更する PR は policy-gate が必ず FAIL するため、**admin merge** が必要です。
 
 ---
 
 ## Subagent 運用
 
-### 初期セット（`.claude/agents/`）
-
 | Subagent | 役割 | tools |
 |----------|------|-------|
 | `explorer` | 現状把握（変更対象候補・既存テスト・制約） | Read, Glob, Grep |
-| `architect` | 設計案（方針A/B・変更点・テスト戦略・ロールバック） | Read, Glob, Grep, WebFetch |
-| `test-designer` | テスト設計（AC→Test・A/B/C判定・代替担保） | Read, Glob, Grep |
-| `policy-sentinel` | policy適合（例外ラベル要否・上限超過見込み） | Read, Glob, Grep |
-| `reviewer` | PR差分点検（指摘・質問のみ、最終判定しない） | Read, Glob, Grep |
+| `architect` | 設計案（方針 A/B・変更点・テスト戦略・ロールバック） | Read, Glob, Grep, WebFetch |
+| `test-designer` | テスト設計（AC→Test・A/B/C 判定・代替担保） | Read, Glob, Grep |
+| `policy-sentinel` | policy 適合（例外ラベル要否・上限超過見込み） | Read, Glob, Grep |
+| `reviewer` | PR 差分点検（指摘・質問のみ、最終判定しない） | Read, Glob, Grep |
 
-### 共通ルール
-
-- plan 系 Subagent（explorer / architect / test-designer / policy-sentinel）は **read-only**
-- `reviewer` は **最終判定しない**（マージ判断は人間）
+- plan 系 Subagent は **read-only**、`reviewer` は **最終判定しない**
 - コードを変更するのは implement ステージの main Claude のみ
-
-### 委譲順
 
 | コマンド | フロー |
 |---------|--------|
@@ -117,14 +183,14 @@ policy gate による差分制御と、人間による手動マージ運用を�
 
 | ラベル            | 用途                                         |
 | ----------------- | -------------------------------------------- |
-| `ai-ready`        | AI着手許可（誤爆防止のスイッチ）             |
-| `ai-question`     | 仕様不足・質問待ち（AI停止）                 |
-| `ai-blocked`      | 人間判断待ち（AI停止）                       |
-| `draft-pr`        | AI作成のドラフトPR                           |
+| `ai-ready`        | AI 着手許可（誤爆防止のスイッチ）            |
+| `ai-question`     | 仕様不足・質問待ち（AI 停止）                |
+| `ai-blocked`      | 人間判断待ち（AI 停止）                      |
+| `draft-pr`        | AI 作成のドラフト PR                         |
 | `phase-bootstrap` | 初期構築フェーズ（仕様変更を儀式化して許容） |
 | `phase-stable`    | 安定運用フェーズ（デフォルト）               |
-| `allow-deps`      | 依存ファイル変更の例外許可（Soft Gate解除）  |
-| `allow-config`    | 設定ファイル変更の例外許可（Soft Gate解除）  |
+| `allow-deps`      | 依存ファイル変更の例外許可（Soft Gate 解除） |
+| `allow-config`    | 設定ファイル変更の例外許可（Soft Gate 解除） |
 
 定義ファイル: [`.github/labels.yml`](.github/labels.yml)
 
