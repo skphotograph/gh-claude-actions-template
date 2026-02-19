@@ -1,121 +1,51 @@
 # Claude Code × GitHub Actions テンプレートリポジトリ
 
-[運用方針](./docs/operation_policy.md)
-[ロードマップ](./docs/roadmap.md)
+GitHub Issues からAIエージェント（Claude）が計画・実装・レビューを行うテンプレートです。
+policy gate による差分制御と、人間による手動マージ運用を前提としています。
 
-## 必須ラベル一覧
+[運用方針](./docs/operation_policy.md) | [ロードマップ](./docs/roadmap.md)
 
-### ラベルの一括登録（新規 Repo セットアップ時）
+---
 
-```bash
-# gh CLI が必要: https://cli.github.com/
-bash tools/setup-labels.sh          # カレントの git remote から自動検出
-bash tools/setup-labels.sh OWNER/REPO  # 明示指定する場合
-```
+## セットアップ（派生リポジトリ作成後）
 
-定義ファイル: [`.github/labels.yml`](.github/labels.yml)
+テンプレートから新規リポジトリを作成した後、以下を順に実施してください:
 
-### ラベル一覧
+- [ ] `ANTHROPIC_API_KEY` Secret を設定（Settings → Secrets → Actions）
+- [ ] `bash tools/setup-labels.sh` で必須ラベルを一括登録
+- [ ] Branch protection で `ci` / `policy-gate` を required check に設定
+- [ ] `tools/ci.sh` にプロジェクト固有の CI コマンドを実装
+- [ ] `policy.yml` の `allowed_dirs` をプロジェクト構造に合わせて調整
+- [ ] 初期構築完了後、`bootstrap.allow_workflows` を `false` に変更
+- [ ] スモークテスト（後述）で一連のフローを確認
 
-| ラベル            | 用途                                         |
-| ----------------- | -------------------------------------------- |
-| `ai-ready`        | AI着手許可（誤爆防止のスイッチ）             |
-| `ai-question`     | 仕様不足・質問待ち（AI停止）                 |
-| `ai-blocked`      | 人間判断待ち（AI停止）                       |
-| `draft-pr`        | AI作成のドラフトPR                           |
-| `phase-bootstrap` | 初期構築フェーズ（仕様変更を儀式化して許容） |
-| `phase-stable`    | 安定運用フェーズ（デフォルト）               |
-| `allow-deps`      | 依存ファイル変更の例外許可（Soft Gate解除）  |
-| `allow-config`    | 設定ファイル変更の例外許可（Soft Gate解除）  |
+> `GITHUB_TOKEN` は GitHub Actions が自動的に発行するため、別途設定不要です。
 
-## Claudeコメントコマンド運用
+---
+
+## コメントコマンド
 
 ### 前提
 
-- 対象Issueに `ai-ready` ラベルが付いていること
+- 対象 Issue に `ai-ready` ラベルが付いていること
 - `ai-question` / `ai-blocked` が付いていないこと
-- Repo に `ANTHROPIC_API_KEY` Secret が設定済みであること
 
 ### 使い方
 
-1. **計画（read-only）**
-   - Issueコメントで `/run-claude plan`
-   - `ai-plan.yml` が起動し、explorer → policy-sentinel → architect の順で分析してコメントします
+| コマンド | 投稿場所 | 動作 |
+|---------|---------|------|
+| `/run-claude plan` | Issue コメント | explorer → policy-sentinel → architect の順で分析（read-only） |
+| `/run-claude implement` | Issue コメント | テスト設計 → 実装 → CI → draft PR 作成 |
+| `/run-claude review` | PR コメント | reviewer subagent が差分を点検してコメント |
+| `/stop` | Issue/PR コメント | `ai-blocked` を付与して AI を停止 |
+| `/retry` | Issue/PR コメント | 直前のステージを再実行するよう案内 |
+| `/rebase` | Issue/PR コメント | Issue に紐づく draft PR ブランチを最新化 |
 
-2. **実装**
-   - Issueコメントで `/run-claude implement`
-   - `ai-implement.yml` が起動し、テスト設計 → 実装 → CI → draft PR 作成を行います
-
-3. **レビュー**
-   - PRコメントで `/run-claude review`
-   - `ai-review.yml` が起動し、reviewer subagent が PR 差分を点検してコメントします
-
-4. **補助コマンド**（`slash-commands.yml`）
-   - `/stop` — `ai-blocked` を付与して AI を停止
-   - `/retry` — 直前のステージを再実行するよう案内
-   - `/rebase` — Issue に紐づく draft PR ブランチを最新化
-
-### コメント入力の注意
-
-- slash command は **バッククォートなし** で入力してください
-  - 例: `/run-claude implement`（OK）
-  - 例: `` `/run-claude implement` ``（NG: 条件不一致で skipped になり得る）
+> slash command は **バッククォートなし** で入力してください。`` `/run-claude plan` `` のように囲むと条件不一致で skipped になります。
 
 ### マージ方針
 
-- 本テンプレートは **手動マージ運用** です
-- required checks（`ci` / `policy-gate`）が成功したPRを、人間が確認してマージします
-
-## ワークフロー動作確認手順（スモーク）
-
-### 1) issue-guard（Issue作成時）
-
-1. 見出しをいくつか省略したIssueを作成
-2. `issue-guard` が起動し、`ai-question` ラベルと不足見出しコメントが付くことを確認
-3. Issue本文を修正し、必要に応じて `ai-ready` を付与
-
-### 2) ai-plan（Issueコメント）
-
-1. 対象Issueに `ai-ready` を付与（`ai-question` / `ai-blocked` は外す）
-2. Issueに `/run-claude plan` とコメント
-3. `ai-plan.yml` が起動し、Claude が explorer → policy-sentinel → architect の順で分析したコメントを返すことを確認
-   - `ANTHROPIC_API_KEY` 未設定の場合はエラーになります
-
-### 3) ai-implement（Issueコメント）
-
-1. 対象Issueに `ai-ready` を付与（`ai-question` / `ai-blocked` は外す）
-2. Issueに `/run-claude implement` とコメント
-3. `ai-implement.yml` が起動し、Claude がテスト設計 → 実装 → CI → draft PR 作成を行うことを確認
-   - `ANTHROPIC_API_KEY` 未設定の場合はエラーになります
-
-### 4) ai-review（PRコメント）
-
-1. 何らかのPRを1つ開く
-2. PRコメントに `/run-claude review` と投稿
-3. `ai-review.yml` が起動し、Claude が PR 差分を点検してコメントを返すことを確認
-   - `ANTHROPIC_API_KEY` 未設定の場合はエラーになります
-
-### 5) 失敗時の見る場所
-
-- GitHubの **Actions** タブで該当Workflow Runを確認
-- PRの **Checks** タブで `ci` / `policy-gate` の状態を確認
-
-## Secrets 設計（各アプリ Repo での設定）
-
-このテンプレートを使うアプリ Repo では、以下の Secrets を設定してください。
-
-| Secret 名 | 設定場所 | 説明 |
-|-----------|----------|------|
-| `ANTHROPIC_API_KEY` | Repo Settings → Secrets → Actions | Anthropic API キー（Claude Code 実行に必要） |
-
-### 設定手順
-
-1. GitHub Repo の **Settings** → **Secrets and variables** → **Actions** を開く
-2. **New repository secret** をクリック
-3. Name: `ANTHROPIC_API_KEY`、Secret: Anthropic Console で発行した API キーを入力
-4. **Add secret** で保存
-
-> `GITHUB_TOKEN` は GitHub Actions が自動的に発行するため、別途設定不要です。
+**手動マージ運用**です。required checks（`ci` / `policy-gate`）が成功した PR を、人間が確認してマージします。
 
 ---
 
@@ -123,19 +53,7 @@ bash tools/setup-labels.sh OWNER/REPO  # 明示指定する場合
 
 ### Bootstrap モード
 
-`policy.yml` の `bootstrap` セクションは、リポジトリの初期構築フェーズで AI エージェントにワークフロー変更や大量ファイル変更を許可するための仕組みです。
-
-```yaml
-bootstrap:
-  allow_workflows: true        # ワークフロー変更を許可
-  allowed_dirs_extra:
-    - '.github/workflows/**'   # hard_gate のワークフロー除外を解除
-  limits:                      # 通常より緩い上限
-    max_files_changed: 20
-    max_diff_lines: 1000
-    max_new_files: 10
-    max_deleted_files: 5
-```
+`bootstrap` セクションは、初期構築フェーズで AI エージェントにワークフロー変更や大量ファイル変更を許可する仕組みです。
 
 | 項目 | Bootstrap ON (`true`) | Bootstrap OFF (`false`) |
 |------|----------------------|------------------------|
@@ -143,19 +61,11 @@ bootstrap:
 | `allowed_dirs` の拡張 | `allowed_dirs_extra` が追加される | 通常の `allowed_dirs` のみ |
 | ファイル変更上限 | `bootstrap.limits` で上書き | `limits` の値を適用 |
 
-### Bootstrap を無効化するタイミング
-
 以下の条件を全て満たしたら `allow_workflows: false` に変更してください:
 
 1. ワークフロー（`.github/workflows/`）の初期構築が完了した
 2. CI / policy-gate が required check として動作している
 3. AI エージェントにワークフロー変更を許可する必要がなくなった
-
-```yaml
-# 変更箇所
-bootstrap:
-  allow_workflows: false   # true → false に変更
-```
 
 > **重要**: `policy.yml` は hard_gate で保護されており、AI エージェントは変更できません。この変更は**人間が手動で**行ってください。
 
@@ -172,18 +82,6 @@ bootstrap:
 - **レイヤー 2**: `policy-gate.js` 内のハードコードチェックが `policy.yml` の読み込み**前**に実行 → ポリシー改ざんによるバイパスを防止
 
 これらのファイルを変更する PR は policy-gate が必ず FAIL するため、**admin merge** が必要です。
-
-### 派生リポジトリのセットアップチェックリスト
-
-テンプレートから新規リポジトリを作成した後、以下を順に実施してください:
-
-- [ ] `ANTHROPIC_API_KEY` Secret を設定
-- [ ] `bash tools/setup-labels.sh` で必須ラベルを一括登録
-- [ ] Branch protection で `ci` / `policy-gate` を required check に設定
-- [ ] `tools/ci.sh` にプロジェクト固有の CI コマンドを実装
-- [ ] `policy.yml` の `allowed_dirs` をプロジェクト構造に合わせて調整
-- [ ] 初期構築完了後、`bootstrap.allow_workflows` を `false` に変更
-- [ ] スモークテスト: Issue → `/run-claude plan` → `/run-claude implement` → draft PR → `/run-claude review` → merge
 
 ---
 
@@ -207,37 +105,59 @@ bootstrap:
 
 ### 委譲順
 
-**`/run-claude plan`**
-```
-explorer → policy-sentinel → architect → main が統合してコメント
-```
+| コマンド | フロー |
+|---------|--------|
+| `/run-claude plan` | explorer → policy-sentinel → architect → main が統合してコメント |
+| `/run-claude implement` | test-designer（事前設計）→ main が実装・テスト・draft PR 作成 |
+| `/run-claude review` | reviewer が差分を点検 → 指摘・質問をコメントして返す |
 
-**`/run-claude implement`**
-```
-test-designer（事前設計）→ main が実装・テスト・draft PR 作成
-```
+---
 
-**`/run-claude review`**
-```
-reviewer が差分を点検 → 指摘・質問をコメントして返す
+## ラベル一覧
+
+| ラベル            | 用途                                         |
+| ----------------- | -------------------------------------------- |
+| `ai-ready`        | AI着手許可（誤爆防止のスイッチ）             |
+| `ai-question`     | 仕様不足・質問待ち（AI停止）                 |
+| `ai-blocked`      | 人間判断待ち（AI停止）                       |
+| `draft-pr`        | AI作成のドラフトPR                           |
+| `phase-bootstrap` | 初期構築フェーズ（仕様変更を儀式化して許容） |
+| `phase-stable`    | 安定運用フェーズ（デフォルト）               |
+| `allow-deps`      | 依存ファイル変更の例外許可（Soft Gate解除）  |
+| `allow-config`    | 設定ファイル変更の例外許可（Soft Gate解除）  |
+
+定義ファイル: [`.github/labels.yml`](.github/labels.yml)
+
+```bash
+# 一括登録（gh CLI が必要）
+bash tools/setup-labels.sh
 ```
 
 ---
 
-## 現在のテンプレ実装状況（2026-02時点）
+## スモークテスト
 
-- 実装済み
-  - `issue-guard.yml` — Issue テンプレ検査・`ai-question` 自動付与
-  - `ai-plan.yml` — `claude-code-action` 統合（explorer → policy-sentinel → architect）
-  - `ai-implement.yml` — `claude-code-action` 統合（test-designer → 実装 → CI → draft PR）
-  - `ai-review.yml` — `claude-code-action` 統合（reviewer subagent による差分点検）
-  - `slash-commands.yml` — `/stop` `/retry` `/rebase` 補助コマンド
-  - `ci.yml` — CI 入口（`tools/ci.sh`、派生 Repo で実装）
-  - `policy-gate.yml` — policy.yml ベースの差分検査
-  - `.claude/agents/` — 5体の Subagent 設定（explorer / architect / test-designer / policy-sentinel / reviewer）
-- 運用方針
-  - **手動マージ固定**（safe-to-merge / enable-automerge は不使用）
-  - required checks（`ci` / `policy-gate`）成功後に人間がマージ
-- 注意事項
-  - `anthropics/claude-code-action@v1` の入力パラメータはリリース版で要確認
-  - 派生 Repo では `ANTHROPIC_API_KEY` Secret の設定が必須
+### 1) issue-guard
+
+1. 見出しをいくつか省略した Issue を作成
+2. `issue-guard` が起動し、`ai-question` ラベルと不足見出しコメントが付くことを確認
+
+### 2) ai-plan
+
+1. Issue に `ai-ready` を付与（`ai-question` / `ai-blocked` は外す）
+2. `/run-claude plan` とコメント → Claude が分析コメントを返すことを確認
+
+### 3) ai-implement
+
+1. Issue に `ai-ready` を付与
+2. `/run-claude implement` とコメント → draft PR が作成されることを確認
+
+### 4) ai-review
+
+1. PR コメントに `/run-claude review` と投稿 → 差分点検コメントが返ることを確認
+
+### トラブルシュート
+
+- **Actions** タブで該当 Workflow Run のログを確認
+- **Checks** タブで `ci` / `policy-gate` の状態を確認
+- `ANTHROPIC_API_KEY` 未設定の場合はエラーになります
