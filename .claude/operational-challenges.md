@@ -75,7 +75,7 @@
 
 ## C. 設計判断が必要（意図的かもしれないが確認が要る）
 
-### C-1. Concurrency グループが plan / implement で共有【低〜中】
+### C-1. Concurrency グループが plan / implement で共有【低〜中】 ✅ 対応済み（2026-02-19 / `fix/c1-separate-concurrency-groups`）
 
 - **対象**: `ai-plan.yml` L13-14, `ai-implement.yml` L13-14
 - **状況**: 同一 Issue 番号で同じ concurrency グループ。plan 中に implement をコメントすると plan がキャンセルされる
