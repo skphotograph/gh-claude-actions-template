@@ -14,6 +14,7 @@ policy gate による差分制御と、人間による手動マージ運用を�
 - [ ] Branch protection で `ci` / `policy-gate` を required check に設定
 - [ ] `tools/ci.sh` にプロジェクト固有の CI コマンドを実装
 - [ ] `policy.yml` の `allowed_dirs` をプロジェクト構造に合わせて調整
+- [ ] `CLAUDE.md` にプロジェクト固有ルールを記載
 - [ ] 初期構築完了後、`bootstrap.allow_workflows` を `false` に変更
 - [ ] （任意）`AI_NOTIFY_WEBHOOK_URL` Secret を設定（`ai-question` / `ai-blocked` 通知）
 - [ ] スモークテスト（後述）で一連のフローを確認
