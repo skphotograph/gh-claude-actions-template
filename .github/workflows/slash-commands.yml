@@ -76,8 +76,8 @@ jobs:
 
   # ──────────────────────────────────────────────
   # /retry: 直前のコマンドを再実行
-  #   draft-pr ラベルあり → implement 相当のコメントを誘導
-  #   draft-pr ラベルなし → plan 相当のコメントを誘導
+  #   draft-pr ラベルあり → implement を自動再実行
+  #   draft-pr ラベルなし → plan を自動再実行
   # ──────────────────────────────────────────────
   retry:
     if: >-
@@ -85,7 +85,7 @@ jobs:
       startsWith(github.event.comment.body, '/retry')
     runs-on: ubuntu-latest
     steps:
-      - name: Check labels and post retry guidance
+      - name: Check labels and trigger retry command
         uses: actions/github-script@v7
         with:
           script: |
@@ -124,14 +124,9 @@ jobs:
               body: [
                 `🔄 \`/retry\` を受け付けました。`,
                 "",
-                `直前のステージ（**${stage}**）を再実行します。`,
-                `以下のコメントを入力してください：`,
+                `直前のステージ（**${stage}**）を自動再実行します。`,
                 "",
-                `\`\`\``,
                 nextCommand,
-                `\`\`\``,
-                "",
-                "> 注: `/retry` は再実行のガイドのみ行います。実際の再実行は上記コマンドを入力してください。",
               ].join("\n"),
             });
 
