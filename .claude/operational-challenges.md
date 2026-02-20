@@ -125,4 +125,15 @@
 
 ---
 
+## E. 第2回リポジトリレビュー（2026-02-20）
+
+### E-3. `policy-gate.test.js` の POLICY_YAML が本番 `policy.yml` と乖離している【低】 ✅ 対応済み（2026-02-20 / `fix/e3-sync-test-policy-yaml`）
+
+- **対象**: `tools/policy-gate.test.js` L19-28 vs `policy.yml` L9-16
+- **現象**: テスト内の `allowed_files` に `package.json` が含まれているが、本番の `policy.yml` には含まれていない。また `bootstrap.allow_workflows` がテストでは `false`、本番では `true`
+- **影響**: テストが本番設定と異なるポリシーで検証されるため、テスト結果の信頼性が低下する
+- **対処**: 差異の理由をコメントで明記（`package.json` は soft gate テストに必要、`bootstrap.allow_workflows: false` は bootstrap テストに必要）
+
+---
+
 > 最終更新: 2026-02-20
