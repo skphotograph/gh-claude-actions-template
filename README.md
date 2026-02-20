@@ -11,7 +11,7 @@ policy gate による差分制御と、人間による手動マージ運用を�
 
 - [ ] `ANTHROPIC_API_KEY` Secret を設定（Settings → Secrets → Actions）
 - [ ] `bash tools/setup-labels.sh` で必須ラベルを一括登録
-- [ ] Branch protection で `ci` / `policy-gate` を required check に設定
+- [ ] `bash tools/setup-branch-protection.sh` で Branch protection を適用
 - [ ] `tools/ci.sh` にプロジェクト固有の CI コマンドを実装
 - [ ] `policy.yml` の `allowed_dirs` をプロジェクト構造に合わせて調整
 - [ ] `CLAUDE.md` にプロジェクト固有ルールを記載
@@ -20,6 +20,12 @@ policy gate による差分制御と、人間による手動マージ運用を�
 - [ ] スモークテスト（後述）で一連のフローを確認
 
 > `GITHUB_TOKEN` は GitHub Actions が自動的に発行するため、別途設定不要です。
+
+Branch protection の対象ブランチを変更したい場合:
+
+```bash
+bash tools/setup-branch-protection.sh OWNER/REPO BRANCH
+```
 
 ---
 
