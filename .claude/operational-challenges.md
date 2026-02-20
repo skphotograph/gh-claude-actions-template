@@ -125,4 +125,15 @@
 
 ---
 
+## E. 第2回リポジトリレビュー（2026-02-20）
+
+### E-1. `ai-review` に `author_association` チェックがない【中】 ✅ 対応済み（2026-02-20 / `fix/e1-review-author-association`）
+
+- **対象**: `.github/workflows/ai-review.yml` L13-15
+- **現象**: D-1 で plan / implement / slash-commands に `author_association` チェックを追加したが、`ai-review.yml` だけ抜けている
+- **影響**: 公開リポジトリで誰でも `/run-claude review` を実行でき、API コストが発生する
+- **対処**: `if` 条件に `contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)` を追加する
+
+---
+
 > 最終更新: 2026-02-20
