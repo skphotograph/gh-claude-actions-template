@@ -109,8 +109,7 @@
 - **影響**: 公開リポジトリでは、不要実行・運用妨害・API利用の増加リスクがある
 - **対処**: `if` 条件に `github.event.comment.author_association` の制限（例: `OWNER` / `MEMBER` / `COLLABORATOR`）を追加する
 
-### D-2. `policy-gate.js` の `name-status` 解析が rename を壊す（Medium）
-- **Status**: Completed (2026-02-20, `fix/d2-parse-rename-name-status`)
+### D-2. `policy-gate.js` の `name-status` 解析が rename を壊す（Medium） [Completed: 2026-02-20 / `fix/d2-parse-rename-name-status`]
 
 - **対象**: `tools/policy-gate.js`
 - **現象**: `git diff --name-status` の結果を空白分割しているため、rename（`R100 old new`）時にパスが壊れる
