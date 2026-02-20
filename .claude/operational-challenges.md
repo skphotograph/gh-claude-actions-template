@@ -127,21 +127,26 @@
 
 ## E. 第2回リポジトリレビュー（2026-02-20）
 
-<<<<<<< fix/e6-retry-workflow-dispatch
-### E-6. `/retry` の自動コメントが plan/implement をトリガーしない【中】 ✅ 対応済み（2026-02-20 / `fix/e6-retry-workflow-dispatch`）
-
-- **対象**: `.github/workflows/slash-commands.yml`, `.github/workflows/ai-plan.yml`, `.github/workflows/ai-implement.yml`
-- **現象**: `/retry` は `github-script` 経由でコメントを投稿するが、`GITHUB_TOKEN` で作成されたコメントは GitHub のセキュリティ仕様により `issue_comment` ワークフローをトリガーしない
-- **影響**: `/retry` が実質的に機能しない
-- **対処**: `ai-plan.yml` / `ai-implement.yml` に `workflow_dispatch` トリガーを追加し、`/retry` から `createWorkflowDispatch` で直接ワークフローを起動する方式に変更
-=======
 ### E-1. `ai-review` に `author_association` チェックがない【中】 ✅ 対応済み（2026-02-20 / `fix/e1-review-author-association`）
 
 - **対象**: `.github/workflows/ai-review.yml` L13-15
 - **現象**: D-1 で plan / implement / slash-commands に `author_association` チェックを追加したが、`ai-review.yml` だけ抜けている
 - **影響**: 公開リポジトリで誰でも `/run-claude review` を実行でき、API コストが発生する
 - **対処**: `if` 条件に `contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)` を追加する
->>>>>>> main
+
+### E-2. `label-notify.yml` の `secrets` 参照が `jobs.if` で機能しない【低】 ✅ 対応済み（2026-02-20 / `fix/e2-label-notify-secrets-check`）
+
+- **対象**: `.github/workflows/label-notify.yml` L12
+- **現象**: `secrets.AI_NOTIFY_WEBHOOK_URL != ''` を `jobs.<id>.if` で参照しているが、GitHub Actions の `jobs.<id>.if` では `secrets` コンテキストを参照できない
+- **影響**: Secret が設定されていてもジョブの条件判定が正しく動作しない可能性がある
+- **対処**: `secrets` 参照を `jobs.if` から削除し、job レベル `env` で展開してステップの `if` で `env.WEBHOOK_URL` を判定する方式に変更
+
+### E-6. `/retry` の自動コメントが plan/implement をトリガーしない【中】 ✅ 対応済み（2026-02-20 / `fix/e6-retry-workflow-dispatch`）
+
+- **対象**: `.github/workflows/slash-commands.yml`, `.github/workflows/ai-plan.yml`, `.github/workflows/ai-implement.yml`
+- **現象**: `/retry` は `github-script` 経由でコメントを投稿するが、`GITHUB_TOKEN` で作成されたコメントは GitHub のセキュリティ仕様により `issue_comment` ワークフローをトリガーしない
+- **影響**: `/retry` が実質的に機能しない
+- **対処**: `ai-plan.yml` / `ai-implement.yml` に `workflow_dispatch` トリガーを追加し、`/retry` から `createWorkflowDispatch` で直接ワークフローを起動する方式に変更
 
 ---
 

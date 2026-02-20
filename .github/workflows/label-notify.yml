@@ -9,13 +9,14 @@ permissions:
 
 jobs:
   notify-draft-pr:
-    if: github.event.label.name == 'draft-pr' && secrets.AI_NOTIFY_WEBHOOK_URL != ''
+    if: github.event.label.name == 'draft-pr'
     runs-on: ubuntu-latest
+    env:
+      WEBHOOK_URL: ${{ secrets.AI_NOTIFY_WEBHOOK_URL }}
     steps:
       - name: Notify external hook (draft-pr)
+        if: env.WEBHOOK_URL != ''
         continue-on-error: true
-        env:
-          WEBHOOK_URL: ${{ secrets.AI_NOTIFY_WEBHOOK_URL }}
         run: |
           curl -fsS -X POST \
             -H "Content-Type: application/json" \
