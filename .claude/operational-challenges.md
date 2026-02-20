@@ -125,4 +125,15 @@
 
 ---
 
+## E. 第2回リポジトリレビュー（2026-02-20）
+
+### E-2. `label-notify.yml` の `secrets` 参照が `jobs.if` で機能しない【低】 ✅ 対応済み（2026-02-20 / `fix/e2-label-notify-secrets-check`）
+
+- **対象**: `.github/workflows/label-notify.yml` L12
+- **現象**: `secrets.AI_NOTIFY_WEBHOOK_URL != ''` を `jobs.<id>.if` で参照しているが、GitHub Actions の `jobs.<id>.if` では `secrets` コンテキストを参照できない
+- **影響**: Secret が設定されていてもジョブの条件判定が正しく動作しない可能性がある
+- **対処**: `secrets` 参照を `jobs.if` から削除し、job レベル `env` で展開してステップの `if` で `env.WEBHOOK_URL` を判定する方式に変更
+
+---
+
 > 最終更新: 2026-02-20
