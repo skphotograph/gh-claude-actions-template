@@ -15,6 +15,7 @@ policy gate による差分制御と、人間による手動マージ運用を�
 - [ ] `tools/ci.sh` にプロジェクト固有の CI コマンドを実装
 - [ ] `policy.yml` の `allowed_dirs` をプロジェクト構造に合わせて調整
 - [ ] 初期構築完了後、`bootstrap.allow_workflows` を `false` に変更
+- [ ] （任意）`AI_NOTIFY_WEBHOOK_URL` Secret を設定（`ai-question` / `ai-blocked` 通知）
 - [ ] スモークテスト（後述）で一連のフローを確認
 
 > `GITHUB_TOKEN` は GitHub Actions が自動的に発行するため、別途設定不要です。
@@ -54,6 +55,27 @@ policy gate による差分制御と、人間による手動マージ運用を�
 - テスト不足（受け入れ条件に対するテストが用意できない）
 - policy gate 失敗（禁止変更・diff 上限・許可パス逸脱）
 - 仕様不足（推測せず `ai-question` を付与して質問）
+
+### 外部通知 Hook（任意）
+
+`AI_NOTIFY_WEBHOOK_URL` Secret を設定すると、以下のラベル付与時に JSON を POST します。
+
+- `ai-question`（`issue-guard`）
+- `ai-blocked`（`/stop`）
+- `draft-pr`（Issue への `draft-pr` ラベル付与時）
+
+送信 JSON 形式:
+
+```json
+{
+  "event": "ai_state_changed",
+  "label": "ai-question | ai-blocked | draft-pr",
+  "source": "issue-guard | slash-commands-stop | issues-labeled",
+  "repository": "owner/repo",
+  "issue_number": 123,
+  "issue_url": "https://github.com/owner/repo/issues/123"
+}
+```
 
 ### 人間の介入ポイント
 
