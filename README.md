@@ -137,7 +137,8 @@ PR 本文に **AC → Test 対応表**（各受け入れ条件をどのテスト
 ### テンプレート
 
 Issue は `.github/ISSUE_TEMPLATE/ai-issue.md` のテンプレートに従って作成してください。
-必須見出しが不足している場合、`issue-guard` が `ai-question` ラベルを付与して質問します。
+必須見出しが不足している場合、`issue-guard` が `ai-question` ラベルを付与します。
+Issue 編集で必須見出しが揃うと、`issue-guard` が `ai-question` を自動で外します。
 
 ### 受け入れ条件（AC）のルール
 
