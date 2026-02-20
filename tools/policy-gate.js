@@ -329,11 +329,13 @@ function main() {
   const allowConfig = args.allowConfig || process.env.ALLOW_CONFIG === 'true';
 
   const depsHits = (softGate.deps || []).length
-    ? changes.filter((c) => changeMatches(softGate.deps, c)).map((c) => c.path)
+    ? changes
+        .filter((c) => changeMatches(softGate.deps, c) && !allowedFiles.includes(c.path))
+        .map((c) => c.path)
     : [];
   const configHits = (softGate.config || []).length
     ? changes
-        .filter((c) => changeMatches(softGate.config, c))
+        .filter((c) => changeMatches(softGate.config, c) && !allowedFiles.includes(c.path))
         .map((c) => c.path)
     : [];
 

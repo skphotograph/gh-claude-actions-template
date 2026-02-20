@@ -43,6 +43,7 @@ soft_gate:
     - 'build.gradle'
     - 'build.gradle.kts'
     - 'gradle.properties'
+    - 'tools/*.lock'
   config:
     - '*.yml'
     - '*.yaml'
@@ -146,8 +147,9 @@ test('rename with spaces in allowed dir passes', () => {
 });
 
 test('soft gate blocks deps file without allow flag', () => {
+  // Use tools/*.lock (in allowed_dirs but not allowed_files) to test soft gate blocking
   const repo = createRepo((cwd) => {
-    writeFile(cwd, 'package.json', '{"name":"x"}\n');
+    writeFile(cwd, 'tools/deps.lock', 'lockfile\n');
   });
   try {
     const result = repo.runGate();
@@ -160,10 +162,24 @@ test('soft gate blocks deps file without allow flag', () => {
 
 test('soft gate allows deps file with ALLOW_DEPS=true', () => {
   const repo = createRepo((cwd) => {
-    writeFile(cwd, 'package.json', '{"name":"x"}\n');
+    writeFile(cwd, 'tools/deps.lock', 'lockfile\n');
   });
   try {
     const result = repo.runGate({ ALLOW_DEPS: 'true' });
+    assert.equal(result.ok, true, result.stderr || result.stdout);
+  } finally {
+    repo.cleanup();
+  }
+});
+
+test('allowed_files bypasses soft gate without allow flag', () => {
+  // package.json is in both allowed_files and soft_gate.deps;
+  // allowed_files should take precedence and skip the soft gate check
+  const repo = createRepo((cwd) => {
+    writeFile(cwd, 'package.json', '{"name":"x"}\n');
+  });
+  try {
+    const result = repo.runGate();
     assert.equal(result.ok, true, result.stderr || result.stdout);
   } finally {
     repo.cleanup();
