@@ -13,11 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Validate issue template sections
+        id: guard
         uses: actions/github-script@v7
         with:
           script: |
             const issue = context.payload.issue;
             const body = issue.body || "";
+            core.setOutput("notify", "false");
 
             const requiredHeadings = [
               "## 🎯 目的（Why）",
@@ -79,4 +81,16 @@ jobs:
               body: message,
             });
 
+            core.setOutput("notify", "true");
             core.setFailed(`Missing required headings: ${missing.join(", ")}`);
+
+      - name: Notify external hook (ai-question)
+        if: always() && steps.guard.outputs.notify == 'true' && secrets.AI_NOTIFY_WEBHOOK_URL != ''
+        continue-on-error: true
+        env:
+          WEBHOOK_URL: ${{ secrets.AI_NOTIFY_WEBHOOK_URL }}
+        run: |
+          curl -fsS -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"event\":\"ai_state_changed\",\"label\":\"ai-question\",\"source\":\"issue-guard\",\"repository\":\"${{ github.repository }}\",\"issue_number\":${{ github.event.issue.number }},\"issue_url\":\"${{ github.event.issue.html_url }}\"}" \
+            "$WEBHOOK_URL"

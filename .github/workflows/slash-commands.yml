@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Add ai-blocked label and post comment
+        id: stop_guard
         uses: actions/github-script@v7
         with:
           script: |
@@ -59,6 +60,19 @@ jobs:
                 "次回の AI 実行は `ai-blocked` を外し、`ai-ready` を付与してから再度コマンドを入力してください。",
               ].join("\n"),
             });
+
+            core.setOutput("notify", "true");
+
+      - name: Notify external hook (ai-blocked)
+        if: steps.stop_guard.outputs.notify == 'true' && secrets.AI_NOTIFY_WEBHOOK_URL != ''
+        continue-on-error: true
+        env:
+          WEBHOOK_URL: ${{ secrets.AI_NOTIFY_WEBHOOK_URL }}
+        run: |
+          curl -fsS -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"event\":\"ai_state_changed\",\"label\":\"ai-blocked\",\"source\":\"slash-commands-stop\",\"repository\":\"${{ github.repository }}\",\"issue_number\":${{ github.event.issue.number }},\"issue_url\":\"${{ github.event.issue.html_url }}\"}" \
+            "$WEBHOOK_URL"
 
   # ──────────────────────────────────────────────
   # /retry: 直前のコマンドを再実行

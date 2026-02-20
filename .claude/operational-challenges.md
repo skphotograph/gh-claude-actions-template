@@ -89,7 +89,7 @@
 - **論点**: テンプレートで対応すべきか、派生リポジトリの運用に委ねるか
 - **案**: `claude-code-action` の `max_tokens` パラメータ活用、または README に推奨設定を記載
 
-### C-3. AI 停止時の外部通知がない【低】
+### C-3. AI 停止時の外部通知がない【低】 ✅ 対応済み（2026-02-20 / `fix/c3-add-notification-hook-point`）
 
 - **対象**: 全 AI ワークフロー
 - **状況**: `ai-blocked` / `ai-question` 付与時に Issue コメントのみ。Slack 等への通知なし
