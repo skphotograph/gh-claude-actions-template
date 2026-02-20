@@ -1,0 +1,23 @@
+name: label-notify
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+
+jobs:
+  notify-draft-pr:
+    if: github.event.label.name == 'draft-pr' && secrets.AI_NOTIFY_WEBHOOK_URL != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify external hook (draft-pr)
+        continue-on-error: true
+        env:
+          WEBHOOK_URL: ${{ secrets.AI_NOTIFY_WEBHOOK_URL }}
+        run: |
+          curl -fsS -X POST \
+            -H "Content-Type: application/json" \
+            -d "{\"event\":\"ai_state_changed\",\"label\":\"draft-pr\",\"source\":\"issues-labeled\",\"repository\":\"${{ github.repository }}\",\"issue_number\":${{ github.event.issue.number }},\"issue_url\":\"${{ github.event.issue.html_url }}\"}" \
+            "$WEBHOOK_URL"

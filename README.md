@@ -62,6 +62,20 @@ policy gate による差分制御と、人間による手動マージ運用を�
 
 - `ai-question`（`issue-guard`）
 - `ai-blocked`（`/stop`）
+- `draft-pr`（Issue への `draft-pr` ラベル付与時）
+
+送信 JSON 形式:
+
+```json
+{
+  "event": "ai_state_changed",
+  "label": "ai-question | ai-blocked | draft-pr",
+  "source": "issue-guard | slash-commands-stop | issues-labeled",
+  "repository": "owner/repo",
+  "issue_number": 123,
+  "issue_url": "https://github.com/owner/repo/issues/123"
+}
+```
 
 ### 人間の介入ポイント
 
