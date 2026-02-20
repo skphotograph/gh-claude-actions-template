@@ -63,6 +63,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
+          max_tokens: 12000
           direct_prompt: |
             Issue #${{ github.event.issue.number }} の内容を読み、実装計画（plan）を作成してください。
 

@@ -23,6 +23,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
+          max_tokens: 8000
           direct_prompt: |
             PR #${{ github.event.issue.number }} のコードレビューを行ってください。
 

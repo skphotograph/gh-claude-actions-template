@@ -100,6 +100,14 @@ PR 本文に **AC → Test 対応表**（各受け入れ条件をどのテスト
 - `/retry`: 最大 2 回
 - 自動 fix: 最大 2 ラウンド（それ以上は `ai-blocked`）
 
+### API コスト管理（`max_tokens`）
+
+- `ai-plan`: `max_tokens: 12000`
+- `ai-implement`: `max_tokens: 24000`
+- `ai-review`: `max_tokens: 8000`
+
+トークン上限に達して応答が不足した場合は、Issue/PR を分割するか、必要に応じて上限値を調整してください。
+
 ---
 
 ## Issue の書き方
