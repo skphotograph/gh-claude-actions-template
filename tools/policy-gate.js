@@ -251,22 +251,22 @@ function main() {
   const changes = [];
   if (nameStatusRaw) {
     const entries = nameStatusRaw.split('\0').filter(Boolean);
-    for (let i = 0; i < entries.length; i++) {
-      const e = entries[i];
-      const tab = e.indexOf('\t');
-      if (tab < 0) {
-        die(`Unexpected name-status entry: ${e}`);
-      }
-      const status = e.slice(0, tab);
-      const pathA = e.slice(tab + 1);
+    for (let i = 0; i < entries.length; ) {
+      const status = entries[i++];
+      if (!status) break;
 
       if (status.startsWith('R') || status.startsWith('C')) {
-        const pathB = entries[++i];
-        if (!pathB) {
-          die(`Unexpected rename/copy entry without destination: ${e}`);
+        const pathA = entries[i++];
+        const pathB = entries[i++];
+        if (!pathA || !pathB) {
+          die(`Unexpected rename/copy entry without destination: ${status}`);
         }
         changes.push({ status, path: pathB, checkPaths: [pathA, pathB] });
       } else {
+        const pathA = entries[i++];
+        if (!pathA) {
+          die(`Unexpected name-status entry without path: ${status}`);
+        }
         changes.push({ status, path: pathA, checkPaths: [pathA] });
       }
     }
