@@ -102,7 +102,7 @@
 
 ## D. リポジトリレビュー（2026-02-20）
 
-### D-1. `issue_comment` トリガーに実行者制限がない（High）
+### D-1. `issue_comment` トリガーに実行者制限がない（High） ✅ 対応済み（2026-02-19 / `fix/d1-restrict-issue-comment-trigger`）
 
 - **対象**: `.github/workflows/ai-plan.yml`, `.github/workflows/ai-implement.yml`, `.github/workflows/slash-commands.yml`
 - **現象**: `/run-claude plan` / `/run-claude implement` / `/retry` / `/rebase` / `/stop` の `issue_comment` 起動ジョブで、`author_association` などの実行者制限チェックが未実装
