@@ -1,0 +1,48 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Java / JVM
+.gradle/
+out/
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Rust
+**/*.rs.bk
+
+# Env / Secrets
+.env
+.env.*
+!.env.example
+
+# Build / Coverage
+dist/
+build/
+coverage/
+tmp/
+.cache/
+
+# Logs / Temp
+*.log
+*.tmp
+.DS_Store
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
