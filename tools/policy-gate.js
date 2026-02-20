@@ -148,6 +148,11 @@ function anyMatch(globs, path) {
   return globs.some((g) => globToRegExp(g).test(path));
 }
 
+function changeMatches(globs, change) {
+  const paths = change.checkPaths || [change.path];
+  return paths.some((p) => anyMatch(globs, p));
+}
+
 function parseArgs() {
   const args = process.argv.slice(2);
   const out = {};
@@ -242,14 +247,30 @@ function main() {
   }
 
   // Changed files with status
-  const nameStatus = sh(`git diff --name-status ${base}..${head}`);
-  const changes = nameStatus
-    ? nameStatus.split('\n').map((l) => {
-        const [status, ...rest] = l.split(/\s+/);
-        const path = rest.join(' ');
-        return { status, path };
-      })
-    : [];
+  const nameStatusRaw = sh(`git diff --name-status -z ${base}..${head}`);
+  const changes = [];
+  if (nameStatusRaw) {
+    const entries = nameStatusRaw.split('\0').filter(Boolean);
+    for (let i = 0; i < entries.length; i++) {
+      const e = entries[i];
+      const tab = e.indexOf('\t');
+      if (tab < 0) {
+        die(`Unexpected name-status entry: ${e}`);
+      }
+      const status = e.slice(0, tab);
+      const pathA = e.slice(tab + 1);
+
+      if (status.startsWith('R') || status.startsWith('C')) {
+        const pathB = entries[++i];
+        if (!pathB) {
+          die(`Unexpected rename/copy entry without destination: ${e}`);
+        }
+        changes.push({ status, path: pathB, checkPaths: [pathA, pathB] });
+      } else {
+        changes.push({ status, path: pathA, checkPaths: [pathA] });
+      }
+    }
+  }
 
   // Numstat for line counts
   const numstatRaw = sh(`git diff --numstat ${base}..${head}`);
@@ -285,7 +306,7 @@ function main() {
   const hardHits = changes
     .filter(
       (c) =>
-        anyMatch(effectiveHardGate, c.path) && !allowedFiles.includes(c.path),
+        changeMatches(effectiveHardGate, c) && !allowedFiles.includes(c.path),
     )
     .map((c) => c.path);
   if (hardHits.length) {
@@ -295,7 +316,7 @@ function main() {
   // Allowed dirs gate
   const outside = changes
     .filter(
-      (c) => !anyMatch(allowedDirs, c.path) && !allowedFiles.includes(c.path),
+      (c) => !changeMatches(allowedDirs, c) && !allowedFiles.includes(c.path),
     )
     .map((c) => c.path);
 
@@ -308,11 +329,11 @@ function main() {
   const allowConfig = args.allowConfig || process.env.ALLOW_CONFIG === 'true';
 
   const depsHits = (softGate.deps || []).length
-    ? changes.filter((c) => anyMatch(softGate.deps, c.path)).map((c) => c.path)
+    ? changes.filter((c) => changeMatches(softGate.deps, c)).map((c) => c.path)
     : [];
   const configHits = (softGate.config || []).length
     ? changes
-        .filter((c) => anyMatch(softGate.config, c.path))
+        .filter((c) => changeMatches(softGate.config, c))
         .map((c) => c.path)
     : [];
 
