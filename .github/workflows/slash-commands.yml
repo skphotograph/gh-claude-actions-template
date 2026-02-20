@@ -15,7 +15,9 @@ jobs:
   # /stop: ai-blocked ラベルを付与して停止を宣言
   # ──────────────────────────────────────────────
   stop:
-    if: startsWith(github.event.comment.body, '/stop')
+    if: >-
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+      startsWith(github.event.comment.body, '/stop')
     runs-on: ubuntu-latest
     steps:
       - name: Add ai-blocked label and post comment
@@ -82,6 +84,7 @@ jobs:
   retry:
     if: >-
       github.event.issue.pull_request == null &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
       startsWith(github.event.comment.body, '/retry')
     runs-on: ubuntu-latest
     steps:
@@ -137,6 +140,7 @@ jobs:
   rebase:
     if: >-
       github.event.issue.pull_request == null &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
       startsWith(github.event.comment.body, '/rebase')
     runs-on: ubuntu-latest
     steps:

@@ -99,3 +99,30 @@
 ---
 
 > 最終更新: 2026-02-19
+
+## D. リポジトリレビュー（2026-02-20）
+
+### D-1. `issue_comment` トリガーに実行者制限がない（High）
+
+- **対象**: `.github/workflows/ai-plan.yml`, `.github/workflows/ai-implement.yml`, `.github/workflows/slash-commands.yml`
+- **現象**: `/run-claude plan` / `/run-claude implement` / `/retry` / `/rebase` / `/stop` の `issue_comment` 起動ジョブで、`author_association` などの実行者制限チェックが未実装
+- **影響**: 公開リポジトリでは、不要実行・運用妨害・API利用の増加リスクがある
+- **対処**: `if` 条件に `github.event.comment.author_association` の制限（例: `OWNER` / `MEMBER` / `COLLABORATOR`）を追加する
+
+### D-2. `policy-gate.js` の `name-status` 解析が rename を壊す（Medium）
+
+- **対象**: `tools/policy-gate.js`
+- **現象**: `git diff --name-status` の結果を空白分割しているため、rename（`R100 old new`）時にパスが壊れる
+- **影響**: `hard_gate` / `allowed_dirs` 判定で誤検知が起き、正当なPRが FAIL する可能性がある
+- **対処**: `--name-status -z` で NUL 区切り解析に変更、または `--name-only` と `--numstat` の整合で判定する
+
+### D-3. policy-gate の回帰テスト不足（Low）
+
+- **対象**: `tools/policy-gate.js`（parse / glob / diff 解析）
+- **現象**: 主要ロジックに自動テストがない
+- **影響**: 仕様変更時にゲート誤判定の回帰を検知しづらい
+- **対処**: rename・スペース含むパス・soft gate・limits・bootstrap を含む最小テストを追加する
+
+---
+
+> 最終更新: 2026-02-20

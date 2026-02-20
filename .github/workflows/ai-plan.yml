@@ -16,6 +16,7 @@ jobs:
   ai-plan:
     if: >-
       github.event.issue.pull_request == null &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
       startsWith(github.event.comment.body, '/run-claude plan')
     runs-on: ubuntu-latest
     steps:
