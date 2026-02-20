@@ -116,8 +116,7 @@
 - **影響**: `hard_gate` / `allowed_dirs` 判定で誤検知が起き、正当なPRが FAIL する可能性がある
 - **対処**: `--name-status -z` で NUL 区切り解析に変更、または `--name-only` と `--numstat` の整合で判定する
 
-### D-3. policy-gate の回帰テスト不足（Low）
-- **Status**: Completed (2026-02-20, `fix/d3-add-policy-gate-regression-tests`)
+### D-3. policy-gate の回帰テスト不足（Low） ✅ 対応済み（2026-02-20 / `fix/d3-add-policy-gate-regression-tests`）
 
 - **対象**: `tools/policy-gate.js`（parse / glob / diff 解析）
 - **現象**: 主要ロジックに自動テストがない
