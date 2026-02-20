@@ -37,7 +37,7 @@ policy gate による差分制御と、人間による手動マージ運用を�
 | `/run-claude implement` | Issue コメント | テスト設計 → 実装 → CI → draft PR 作成 |
 | `/run-claude review` | PR コメント | reviewer subagent が差分を点検してコメント |
 | `/stop` | Issue/PR コメント | `ai-blocked` を付与して AI を停止 |
-| `/retry` | Issue/PR コメント | 直前のステージを再実行するよう案内 |
+| `/retry` | Issue コメント | 直前のステージ（plan/implement）を自動再実行 |
 | `/rebase` | Issue/PR コメント | Issue に紐づく draft PR ブランチを最新化 |
 
 > slash command は **バッククォートなし** で入力してください。`` `/run-claude plan` `` のように囲むと条件不一致で skipped になります。
