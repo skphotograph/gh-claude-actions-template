@@ -13,6 +13,18 @@ __pycache__/
 .venv/
 venv/
 
+# Java / JVM
+.gradle/
+out/
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Rust
+**/*.rs.bk
+
 # Env / Secrets
 .env
 .env.*
@@ -22,6 +34,8 @@ venv/
 dist/
 build/
 coverage/
+tmp/
+.cache/
 
 # Logs / Temp
 *.log
