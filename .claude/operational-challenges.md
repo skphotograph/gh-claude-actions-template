@@ -50,7 +50,7 @@
 - **影響**: ユーザーが手動で再コメントする必要がある。特に AI 停止→修正→再実行のサイクルで摩擦が大きい
 - **対応**: `github-script` から直接コメントを作成してワークフローをトリガーする方式を検討
 
-### B-2. issue-guard が Issue 編集時に再検証しない【中】
+### B-2. issue-guard が Issue 編集時に再検証しない【中】 ✅ 対応済み（2026-02-20 / `fix/b2-issue-guard-revalidate-on-edit`）
 
 - **対象**: `.github/workflows/issue-guard.yml` L4-5
 - **状況**: `issues: [opened]` のみ。Issue 編集で見出しを補完しても `ai-question` が自動で外れない

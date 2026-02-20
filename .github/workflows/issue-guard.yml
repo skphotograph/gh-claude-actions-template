@@ -2,7 +2,7 @@ name: issue-guard
 
 on:
   issues:
-    types: [opened]
+    types: [opened, edited]
 
 permissions:
   issues: write
@@ -34,16 +34,28 @@ jobs:
 
             const missing = requiredHeadings.filter((h) => !body.includes(h));
 
-            if (missing.length === 0) {
-              core.info("issue-guard: required headings are complete");
-              return;
-            }
-
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const issue_number = issue.number;
             const labels = (issue.labels || []).map((l) => l.name);
             const hasAiQuestion = labels.includes("ai-question");
+
+            if (missing.length === 0) {
+              if (hasAiQuestion) {
+                try {
+                  await github.rest.issues.removeLabel({
+                    owner,
+                    repo,
+                    issue_number,
+                    name: "ai-question",
+                  });
+                } catch (_) {
+                  // already removed or not present
+                }
+              }
+              core.info("issue-guard: required headings are complete");
+              return;
+            }
 
             // Add ai-question label when template is incomplete (avoid duplicate add)
             if (!hasAiQuestion) {
@@ -55,31 +67,33 @@ jobs:
               });
             }
 
-            const list = missing.map((h) => `- ${h}`).join("\n");
-            const foundCount = requiredHeadings.length - missing.length;
-            const message = [
-              "issue-guard: Issueテンプレの必須見出しが不足しています。",
-              "",
-              `- 検出できた見出し: ${foundCount}/${requiredHeadings.length}`,
-              `- 不足見出し数: ${missing.length}`,
-              "",
-              "不足している見出し:",
-              list,
-              "",
-              "次の対応:",
-              "1. 上記見出しをIssue本文に追記",
-              "2. 必要事項を記入して保存",
-              "3. `ai-ready` を付与してAI着手可能状態にする",
-              "",
-              "補完後に `ai-ready` を付与してAI着手可能状態にしてください。",
-            ].join("\n");
+            if (!hasAiQuestion) {
+              const list = missing.map((h) => `- ${h}`).join("\n");
+              const foundCount = requiredHeadings.length - missing.length;
+              const message = [
+                "issue-guard: Issueテンプレの必須見出しが不足しています。",
+                "",
+                `- 検出できた見出し: ${foundCount}/${requiredHeadings.length}`,
+                `- 不足見出し数: ${missing.length}`,
+                "",
+                "不足している見出し:",
+                list,
+                "",
+                "次の対応:",
+                "1. 上記見出しをIssue本文に追記",
+                "2. 必要事項を記入して保存",
+                "3. `ai-ready` を付与してAI着手可能状態にする",
+                "",
+                "補完後に `ai-ready` を付与してAI着手可能状態にしてください。",
+              ].join("\n");
 
-            await github.rest.issues.createComment({
-              owner,
-              repo,
-              issue_number,
-              body: message,
-            });
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body: message,
+              });
+            }
 
             core.setOutput("notify", "true");
             core.setFailed(`Missing required headings: ${missing.join(", ")}`);
