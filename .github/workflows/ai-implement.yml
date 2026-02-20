@@ -64,6 +64,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
+          max_tokens: 24000
           direct_prompt: |
             Issue #${{ github.event.issue.number }} を実装してください。
 
