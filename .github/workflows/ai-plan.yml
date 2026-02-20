@@ -3,33 +3,53 @@ name: ai-plan
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Target issue number (used by /retry)'
+        required: true
+        type: string
 
 permissions:
   contents: read
   issues: write
 
 concurrency:
-  group: run-claude-plan-${{ github.event.issue.number }}
+  group: run-claude-plan-${{ github.event.issue.number || github.event.inputs.issue_number }}
   cancel-in-progress: true
 
 jobs:
   ai-plan:
     if: >-
-      github.event.issue.pull_request == null &&
-      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
-      startsWith(github.event.comment.body, '/run-claude plan')
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event.issue.pull_request == null &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+       startsWith(github.event.comment.body, '/run-claude plan'))
     runs-on: ubuntu-latest
     steps:
-      - name: Validate labels
-        id: guard
+      - name: Resolve issue context
+        id: ctx
         uses: actions/github-script@v7
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const issue_number = context.payload.issue.number;
+            const issue_number = context.eventName === 'workflow_dispatch'
+              ? Number(context.payload.inputs.issue_number)
+              : context.payload.issue.number;
 
-            const labels = (context.payload.issue.labels || []).map(l => l.name);
+            const { data: issue } = await github.rest.issues.get({
+              owner, repo, issue_number,
+            });
+
+            core.setOutput('issue_number', String(issue.number));
+
+            // Write body to GITHUB_ENV with heredoc delimiter for multiline safety
+            const fs = require('fs');
+            fs.appendFileSync(process.env.GITHUB_ENV,
+              `ISSUE_BODY<<__ISSUE_BODY_EOF__\n${issue.body || ''}\n__ISSUE_BODY_EOF__\n`);
+
+            const labels = issue.labels.map(l => l.name);
             const hasAiReady = labels.includes("ai-ready");
             const blocked = labels.includes("ai-question") || labels.includes("ai-blocked");
 
@@ -48,10 +68,7 @@ jobs:
               ].join("\n");
 
               await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number,
-                body,
+                owner, repo, issue_number, body,
               });
               core.setFailed("ai-plan preconditions are not satisfied");
             }
@@ -66,7 +83,7 @@ jobs:
           github_token: ${{ github.token }}
           max_tokens: 12000
           direct_prompt: |
-            Issue #${{ github.event.issue.number }} の内容を読み、実装計画（plan）を作成してください。
+            Issue #${{ steps.ctx.outputs.issue_number }} の内容を読み、実装計画（plan）を作成してください。
 
             ## あなたの役割
             read-only 分析者です。コードを一切変更せず、以下の順序で調査・設計してください。
@@ -95,9 +112,9 @@ jobs:
             - Hard Gate に抵触する変更が必要な場合は即停止する
 
             ## 出力形式
-            このIssue（#${{ github.event.issue.number }}）にコメントとして投稿する。
-            コメントの冒頭に `## 📋 Plan: Issue #${{ github.event.issue.number }}` と記載する。
+            このIssue（#${{ steps.ctx.outputs.issue_number }}）にコメントとして投稿する。
+            コメントの冒頭に `## 📋 Plan: Issue #${{ steps.ctx.outputs.issue_number }}` と記載する。
 
             ## Issue本文
-            ${{ github.event.issue.body }}
+            ${{ env.ISSUE_BODY }}
           allowed_tools: "Read,Glob,Grep,WebFetch"
