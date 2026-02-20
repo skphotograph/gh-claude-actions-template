@@ -127,12 +127,21 @@
 
 ## E. 第2回リポジトリレビュー（2026-02-20）
 
+<<<<<<< fix/e6-retry-workflow-dispatch
+### E-6. `/retry` の自動コメントが plan/implement をトリガーしない【中】 ✅ 対応済み（2026-02-20 / `fix/e6-retry-workflow-dispatch`）
+
+- **対象**: `.github/workflows/slash-commands.yml`, `.github/workflows/ai-plan.yml`, `.github/workflows/ai-implement.yml`
+- **現象**: `/retry` は `github-script` 経由でコメントを投稿するが、`GITHUB_TOKEN` で作成されたコメントは GitHub のセキュリティ仕様により `issue_comment` ワークフローをトリガーしない
+- **影響**: `/retry` が実質的に機能しない
+- **対処**: `ai-plan.yml` / `ai-implement.yml` に `workflow_dispatch` トリガーを追加し、`/retry` から `createWorkflowDispatch` で直接ワークフローを起動する方式に変更
+=======
 ### E-1. `ai-review` に `author_association` チェックがない【中】 ✅ 対応済み（2026-02-20 / `fix/e1-review-author-association`）
 
 - **対象**: `.github/workflows/ai-review.yml` L13-15
 - **現象**: D-1 で plan / implement / slash-commands に `author_association` チェックを追加したが、`ai-review.yml` だけ抜けている
 - **影響**: 公開リポジトリで誰でも `/run-claude review` を実行でき、API コストが発生する
 - **対処**: `if` 条件に `contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)` を追加する
+>>>>>>> main
 
 ---
 
