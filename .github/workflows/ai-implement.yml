@@ -3,6 +3,12 @@ name: ai-implement
 on:
   issue_comment:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Target issue number (used by /retry)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -10,27 +16,41 @@ permissions:
   issues: write
 
 concurrency:
-  group: run-claude-impl-${{ github.event.issue.number }}
+  group: run-claude-impl-${{ github.event.issue.number || github.event.inputs.issue_number }}
   cancel-in-progress: true
 
 jobs:
   ai-implement:
     if: >-
-      github.event.issue.pull_request == null &&
-      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
-      startsWith(github.event.comment.body, '/run-claude implement')
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event.issue.pull_request == null &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
+       startsWith(github.event.comment.body, '/run-claude implement'))
     runs-on: ubuntu-latest
     steps:
-      - name: Validate labels
-        id: guard
+      - name: Resolve issue context
+        id: ctx
         uses: actions/github-script@v7
         with:
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const issue_number = context.payload.issue.number;
+            const issue_number = context.eventName === 'workflow_dispatch'
+              ? Number(context.payload.inputs.issue_number)
+              : context.payload.issue.number;
 
-            const labels = (context.payload.issue.labels || []).map(l => l.name);
+            const { data: issue } = await github.rest.issues.get({
+              owner, repo, issue_number,
+            });
+
+            core.setOutput('issue_number', String(issue.number));
+
+            // Write body to GITHUB_ENV with heredoc delimiter for multiline safety
+            const fs = require('fs');
+            fs.appendFileSync(process.env.GITHUB_ENV,
+              `ISSUE_BODY<<__ISSUE_BODY_EOF__\n${issue.body || ''}\n__ISSUE_BODY_EOF__\n`);
+
+            const labels = issue.labels.map(l => l.name);
             const hasAiReady = labels.includes("ai-ready");
             const blocked = labels.includes("ai-question") || labels.includes("ai-blocked");
 
@@ -49,10 +69,7 @@ jobs:
               ].join("\n");
 
               await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number,
-                body,
+                owner, repo, issue_number, body,
               });
               core.setFailed("ai-implement preconditions are not satisfied");
             }
@@ -67,7 +84,7 @@ jobs:
           github_token: ${{ github.token }}
           max_tokens: 24000
           direct_prompt: |
-            Issue #${{ github.event.issue.number }} を実装してください。
+            Issue #${{ steps.ctx.outputs.issue_number }} を実装してください。
 
             ## あなたの役割
             実装者です。以下の手順で進めてください。
@@ -82,7 +99,7 @@ jobs:
 
             ### Step 2: 実装
             - `policy.yml` を読み、`allowed_dirs` / `hard_gate` を確認する
-            - ブランチを作成する: `ai/issue-${{ github.event.issue.number }}-<issue-タイトルのスラッグ>`
+            - ブランチを作成する: `ai/issue-${{ steps.ctx.outputs.issue_number }}-<issue-タイトルのスラッグ>`
             - 変更は `allowed_dirs` の範囲内に収める
             - `hard_gate` のパスには絶対に触れない
             - `soft_gate` のパスに触れる場合は対応ラベル（`allow-deps` / `allow-config`）がなければ停止する
@@ -116,5 +133,5 @@ jobs:
             - ラベルなしのマージ（draft 状態を維持すること）
 
             ## Issue本文
-            ${{ github.event.issue.body }}
+            ${{ env.ISSUE_BODY }}
           allowed_tools: "Read,Glob,Grep,Write,Edit,Bash"
