@@ -13,6 +13,7 @@ allowed_files:
   - '.github/PULL_REQUEST_TEMPLATE.md'
   - '.github/labels.yml'
   - 'README.md'
+  - 'CLAUDE.md'
 
 hard_gate:
   - 'policy.yml'
