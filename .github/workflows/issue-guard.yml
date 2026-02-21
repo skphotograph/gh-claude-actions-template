@@ -11,6 +11,8 @@ permissions:
 jobs:
   issue-guard:
     runs-on: ubuntu-latest
+    env:
+      WEBHOOK_URL: ${{ secrets.AI_NOTIFY_WEBHOOK_URL }}
     steps:
       - name: Validate issue template sections
         id: guard
@@ -99,10 +101,8 @@ jobs:
             core.setFailed(`Missing required headings: ${missing.join(", ")}`);
 
       - name: Notify external hook (ai-question)
-        if: always() && steps.guard.outputs.notify == 'true' && secrets.AI_NOTIFY_WEBHOOK_URL != ''
+        if: always() && steps.guard.outputs.notify == 'true' && env.WEBHOOK_URL != ''
         continue-on-error: true
-        env:
-          WEBHOOK_URL: ${{ secrets.AI_NOTIFY_WEBHOOK_URL }}
         run: |
           curl -fsS -X POST \
             -H "Content-Type: application/json" \
