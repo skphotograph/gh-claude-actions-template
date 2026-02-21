@@ -155,6 +155,13 @@
 - **影響**: `allowed_files` に入れたファイルでも soft_gate が発動するため、運用者に混乱を与える
 - **対処**: soft_gate チェックでも `allowed_files` を除外対象に追加し、テストケースを追加
 
+### E-5. `numstat` 解析がリネーム時のパス形式を考慮していない【低】 ✅ 対応済み（2026-02-20 / `fix/e5-numstat-rename-parsing`）
+
+- **対象**: `tools/policy-gate.js` L276-286
+- **現象**: `git diff --numstat` はリネーム時に特殊なパス形式を出力する。`-z` オプションなしで解析しているため、スペース入りパスのリネームで行数カウントが不正確になる可能性がある
+- **影響**: `max_diff_lines` の集計値が実際と異なり、制限の判定が不正確になる
+- **対処**: `--numstat -z` オプションを追加し、NUL 区切りでリネーム時の old/new パスを正しくパースするよう変更
+
 ### E-6. `/retry` の自動コメントが plan/implement をトリガーしない【中】 ✅ 対応済み（2026-02-20 / `fix/e6-retry-workflow-dispatch`）
 
 - **対象**: `.github/workflows/slash-commands.yml`, `.github/workflows/ai-plan.yml`, `.github/workflows/ai-implement.yml`

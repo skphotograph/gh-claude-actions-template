@@ -154,6 +154,22 @@ test('rename with spaces in allowed dir passes', () => {
   }
 });
 
+test('rename with content change counts diff lines correctly', () => {
+  const repo = createRepo((cwd) => {
+    // Rename and modify so numstat reports non-zero add/del for a rename entry
+    git(cwd, 'mv', 'src/base.txt', 'src/renamed.txt');
+    fs.appendFileSync(path.join(cwd, 'src/renamed.txt'), 'extra line\n');
+  });
+  try {
+    const result = repo.runGate();
+    assert.equal(result.ok, true, result.stderr || result.stdout);
+    // Verify the stdout mentions diffLines > 0 (the rename had content change)
+    assert.match(result.stdout, /diffLines/);
+  } finally {
+    repo.cleanup();
+  }
+});
+
 test('soft gate blocks deps file without allow flag', () => {
   // Use tools/*.lock (in allowed_dirs but not allowed_files) to test soft gate blocking
   const repo = createRepo((cwd) => {

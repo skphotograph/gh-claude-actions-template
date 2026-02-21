@@ -272,16 +272,28 @@ function main() {
     }
   }
 
-  // Numstat for line counts
-  const numstatRaw = sh(`git diff --numstat ${base}..${head}`);
+  // Numstat for line counts (use -z for NUL-delimited output to handle renames)
+  const numstatRaw = sh(`git diff --numstat -z ${base}..${head}`);
   const numstats = {};
   if (numstatRaw) {
-    for (const l of numstatRaw.split('\n')) {
-      const [a, d, ...rest] = l.split('\t');
-      const path = rest.join('\t');
+    const parts = numstatRaw.split('\0');
+    let i = 0;
+    while (i < parts.length) {
+      const line = parts[i++];
+      if (!line) continue;
+      const [a, d, ...rest] = line.split('\t');
+      let filePath = rest.join('\t');
       const add = a === '-' ? 0 : Number(a);
       const del = d === '-' ? 0 : Number(d);
-      numstats[path] = { add, del };
+      // Renames/copies: numstat -z emits empty path in the stat line,
+      // followed by old\0new as separate NUL-delimited entries.
+      if (filePath === '') {
+        const oldPath = parts[i++] || '';
+        filePath = parts[i++] || oldPath;
+      }
+      if (filePath) {
+        numstats[filePath] = { add, del };
+      }
     }
   }
 
