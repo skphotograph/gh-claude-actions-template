@@ -12,6 +12,7 @@ jobs:
   ai-review:
     if: >-
       github.event.issue.pull_request != null &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association) &&
       startsWith(github.event.comment.body, '/run-claude review')
     runs-on: ubuntu-latest
     steps:
