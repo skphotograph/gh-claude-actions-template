@@ -127,12 +127,47 @@
 
 ## E. 第2回リポジトリレビュー（2026-02-20）
 
+### E-1. `ai-review` に `author_association` チェックがない【中】 ✅ 対応済み（2026-02-20 / `fix/e1-review-author-association`）
+
+- **対象**: `.github/workflows/ai-review.yml` L13-15
+- **現象**: D-1 で plan / implement / slash-commands に `author_association` チェックを追加したが、`ai-review.yml` だけ抜けている
+- **影響**: 公開リポジトリで誰でも `/run-claude review` を実行でき、API コストが発生する
+- **対処**: `if` 条件に `contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)` を追加する
+
+### E-2. `label-notify.yml` の `secrets` 参照が `jobs.if` で機能しない【低】 ✅ 対応済み（2026-02-20 / `fix/e2-label-notify-secrets-check`）
+
+- **対象**: `.github/workflows/label-notify.yml` L12
+- **現象**: `secrets.AI_NOTIFY_WEBHOOK_URL != ''` を `jobs.<id>.if` で参照しているが、GitHub Actions の `jobs.<id>.if` では `secrets` コンテキストを参照できない
+- **影響**: Secret が設定されていてもジョブの条件判定が正しく動作しない可能性がある
+- **対処**: `secrets` 参照を `jobs.if` から削除し、job レベル `env` で展開してステップの `if` で `env.WEBHOOK_URL` を判定する方式に変更<<<<<<< fix/e3-sync-test-policy-yaml
+
+### E-3. `policy-gate.test.js` の POLICY_YAML が本番 `policy.yml` と乖離している【低】 ✅ 対応済み（2026-02-20 / `fix/e3-sync-test-policy-yaml`）
+
+- **対象**: `tools/policy-gate.test.js` L19-28 vs `policy.yml` L9-16
+- **現象**: テスト内の `allowed_files` に `package.json` が含まれているが、本番の `policy.yml` には含まれていない。また `bootstrap.allow_workflows` がテストでは `false`、本番では `true`
+- **影響**: テストが本番設定と異なるポリシーで検証されるため、テスト結果の信頼性が低下する
+- **対処**: 差異の理由をコメントで明記（`package.json` は soft gate テストに必要、`bootstrap.allow_workflows: false` は bootstrap テストに必要）
+
+### E-4. `allowed_files` が soft_gate チェックをバイパスしない【低】 ✅ 対応済み（2026-02-20 / `fix/e4-allowed-files-bypass-soft-gate`）
+
+- **対象**: `tools/policy-gate.js` L306-314（hard_gate）vs L331-343（soft_gate）
+- **現象**: `allowed_files` は hard_gate の除外に使われるが、soft_gate チェックでは考慮されない
+- **影響**: `allowed_files` に入れたファイルでも soft_gate が発動するため、運用者に混乱を与える
+- **対処**: soft_gate チェックでも `allowed_files` を除外対象に追加し、テストケースを追加
+
 ### E-5. `numstat` 解析がリネーム時のパス形式を考慮していない【低】 ✅ 対応済み（2026-02-20 / `fix/e5-numstat-rename-parsing`）
 
 - **対象**: `tools/policy-gate.js` L276-286
 - **現象**: `git diff --numstat` はリネーム時に特殊なパス形式を出力する。`-z` オプションなしで解析しているため、スペース入りパスのリネームで行数カウントが不正確になる可能性がある
 - **影響**: `max_diff_lines` の集計値が実際と異なり、制限の判定が不正確になる
 - **対処**: `--numstat -z` オプションを追加し、NUL 区切りでリネーム時の old/new パスを正しくパースするよう変更
+
+### E-6. `/retry` の自動コメントが plan/implement をトリガーしない【中】 ✅ 対応済み（2026-02-20 / `fix/e6-retry-workflow-dispatch`）
+
+- **対象**: `.github/workflows/slash-commands.yml`, `.github/workflows/ai-plan.yml`, `.github/workflows/ai-implement.yml`
+- **現象**: `/retry` は `github-script` 経由でコメントを投稿するが、`GITHUB_TOKEN` で作成されたコメントは GitHub のセキュリティ仕様により `issue_comment` ワークフローをトリガーしない
+- **影響**: `/retry` が実質的に機能しない
+- **対処**: `ai-plan.yml` / `ai-implement.yml` に `workflow_dispatch` トリガーを追加し、`/retry` から `createWorkflowDispatch` で直接ワークフローを起動する方式に変更
 
 ---
 

@@ -8,6 +8,14 @@ const { execFileSync } = require('node:child_process');
 const ROOT = path.resolve(__dirname, '..');
 const POLICY_GATE_SRC = path.join(ROOT, 'tools', 'policy-gate.js');
 
+// Test policy kept in sync with policy.yml (root).
+// Intentional differences from production policy.yml:
+//   - allowed_files includes 'package.json': needed so the soft gate
+//     tests can exercise the deps gate without being blocked earlier
+//     by allowed_dirs (package.json at root is outside allowed_dirs).
+//   - bootstrap.allow_workflows is false: so the default behaviour
+//     blocks workflow changes and the PHASE_BOOTSTRAP=true test can
+//     verify the override path.
 const POLICY_YAML = `policy_version: 1
 
 allowed_dirs:
@@ -43,6 +51,7 @@ soft_gate:
     - 'build.gradle'
     - 'build.gradle.kts'
     - 'gradle.properties'
+    - 'tools/*.lock'
   config:
     - '*.yml'
     - '*.yaml'
@@ -162,8 +171,9 @@ test('rename with content change counts diff lines correctly', () => {
 });
 
 test('soft gate blocks deps file without allow flag', () => {
+  // Use tools/*.lock (in allowed_dirs but not allowed_files) to test soft gate blocking
   const repo = createRepo((cwd) => {
-    writeFile(cwd, 'package.json', '{"name":"x"}\n');
+    writeFile(cwd, 'tools/deps.lock', 'lockfile\n');
   });
   try {
     const result = repo.runGate();
@@ -176,10 +186,24 @@ test('soft gate blocks deps file without allow flag', () => {
 
 test('soft gate allows deps file with ALLOW_DEPS=true', () => {
   const repo = createRepo((cwd) => {
-    writeFile(cwd, 'package.json', '{"name":"x"}\n');
+    writeFile(cwd, 'tools/deps.lock', 'lockfile\n');
   });
   try {
     const result = repo.runGate({ ALLOW_DEPS: 'true' });
+    assert.equal(result.ok, true, result.stderr || result.stdout);
+  } finally {
+    repo.cleanup();
+  }
+});
+
+test('allowed_files bypasses soft gate without allow flag', () => {
+  // package.json is in both allowed_files and soft_gate.deps;
+  // allowed_files should take precedence and skip the soft gate check
+  const repo = createRepo((cwd) => {
+    writeFile(cwd, 'package.json', '{"name":"x"}\n');
+  });
+  try {
+    const result = repo.runGate();
     assert.equal(result.ok, true, result.stderr || result.stdout);
   } finally {
     repo.cleanup();
