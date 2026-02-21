@@ -88,7 +88,7 @@ jobs:
       startsWith(github.event.comment.body, '/retry')
     runs-on: ubuntu-latest
     steps:
-      - name: Check labels and trigger retry command
+      - name: Check labels and dispatch retry workflow
         uses: actions/github-script@v7
         with:
           script: |
@@ -117,8 +117,22 @@ jobs:
               return;
             }
 
-            const nextCommand = hasDraftPr ? "/run-claude implement" : "/run-claude plan";
+            const workflowFile = hasDraftPr ? "ai-implement.yml" : "ai-plan.yml";
             const stage = hasDraftPr ? "implement" : "plan";
+
+            // Trigger the workflow directly via workflow_dispatch.
+            // GITHUB_TOKEN comments do not trigger issue_comment workflows,
+            // so we use workflow_dispatch instead.
+            const defaultBranch = context.payload.repository?.default_branch || "main";
+            await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
+              workflow_id: workflowFile,
+              ref: defaultBranch,
+              inputs: {
+                issue_number: String(issue_number),
+              },
+            });
 
             await github.rest.issues.createComment({
               owner,
@@ -127,9 +141,7 @@ jobs:
               body: [
                 `🔄 \`/retry\` を受け付けました。`,
                 "",
-                `直前のステージ（**${stage}**）を自動再実行します。`,
-                "",
-                nextCommand,
+                `直前のステージ（**${stage}**）を \`workflow_dispatch\` で自動再実行しました。`,
               ].join("\n"),
             });
 
