@@ -139,7 +139,7 @@
 - **対象**: `.github/workflows/label-notify.yml` L12
 - **現象**: `secrets.AI_NOTIFY_WEBHOOK_URL != ''` を `jobs.<id>.if` で参照しているが、GitHub Actions の `jobs.<id>.if` では `secrets` コンテキストを参照できない
 - **影響**: Secret が設定されていてもジョブの条件判定が正しく動作しない可能性がある
-- **対処**: `secrets` 参照を `jobs.if` から削除し、job レベル `env` で展開してステップの `if` で `env.WEBHOOK_URL` を判定する方式に変更<<<<<<< fix/e3-sync-test-policy-yaml
+- **対処**: `secrets` 参照を `jobs.if` から削除し、job レベル `env` で展開してステップの `if` で `env.WEBHOOK_URL` を判定する方式に変更
 
 ### E-3. `policy-gate.test.js` の POLICY_YAML が本番 `policy.yml` と乖離している【低】 ✅ 対応済み（2026-02-20 / `fix/e3-sync-test-policy-yaml`）
 
@@ -168,6 +168,13 @@
 - **現象**: `/retry` は `github-script` 経由でコメントを投稿するが、`GITHUB_TOKEN` で作成されたコメントは GitHub のセキュリティ仕様により `issue_comment` ワークフローをトリガーしない
 - **影響**: `/retry` が実質的に機能しない
 - **対処**: `ai-plan.yml` / `ai-implement.yml` に `workflow_dispatch` トリガーを追加し、`/retry` から `createWorkflowDispatch` で直接ワークフローを起動する方式に変更
+
+### E-7. `CLAUDE.md` スケルトンに記入例がない【低】 ✅ 対応済み（2026-02-20 / `fix/e7-claude-md-examples`）
+
+- **対象**: `CLAUDE.md`
+- **現象**: 各セクションの項目が空欄のみで、何を書くべきかの例がない
+- **影響**: 派生リポジトリで AI に伝える運用ルールを記入する際に、どのような内容を書くべきか分かりにくい
+- **対処**: 各項目に HTML コメントで記入例を追加する
 
 ---
 
