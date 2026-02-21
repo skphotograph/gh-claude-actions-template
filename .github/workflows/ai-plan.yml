@@ -43,11 +43,7 @@ jobs:
             });
 
             core.setOutput('issue_number', String(issue.number));
-
-            // Write body to GITHUB_ENV with heredoc delimiter for multiline safety
-            const fs = require('fs');
-            fs.appendFileSync(process.env.GITHUB_ENV,
-              `ISSUE_BODY<<__ISSUE_BODY_EOF__\n${issue.body || ''}\n__ISSUE_BODY_EOF__\n`);
+            core.setOutput('issue_body', issue.body || '');
 
             const labels = issue.labels.map(l => l.name);
             const hasAiReady = labels.includes("ai-ready");
@@ -116,5 +112,5 @@ jobs:
             コメントの冒頭に `## 📋 Plan: Issue #${{ steps.ctx.outputs.issue_number }}` と記載する。
 
             ## Issue本文
-            ${{ env.ISSUE_BODY }}
+            ${{ steps.ctx.outputs.issue_body }}
           allowed_tools: "Read,Glob,Grep,WebFetch"
