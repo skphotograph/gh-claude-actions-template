@@ -148,6 +148,13 @@
 - **影響**: テストが本番設定と異なるポリシーで検証されるため、テスト結果の信頼性が低下する
 - **対処**: 差異の理由をコメントで明記（`package.json` は soft gate テストに必要、`bootstrap.allow_workflows: false` は bootstrap テストに必要）
 
+### E-4. `allowed_files` が soft_gate チェックをバイパスしない【低】 ✅ 対応済み（2026-02-20 / `fix/e4-allowed-files-bypass-soft-gate`）
+
+- **対象**: `tools/policy-gate.js` L306-314（hard_gate）vs L331-343（soft_gate）
+- **現象**: `allowed_files` は hard_gate の除外に使われるが、soft_gate チェックでは考慮されない
+- **影響**: `allowed_files` に入れたファイルでも soft_gate が発動するため、運用者に混乱を与える
+- **対処**: soft_gate チェックでも `allowed_files` を除外対象に追加し、テストケースを追加
+
 ### E-6. `/retry` の自動コメントが plan/implement をトリガーしない【中】 ✅ 対応済み（2026-02-20 / `fix/e6-retry-workflow-dispatch`）
 
 - **対象**: `.github/workflows/slash-commands.yml`, `.github/workflows/ai-plan.yml`, `.github/workflows/ai-implement.yml`
